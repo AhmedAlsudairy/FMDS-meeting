@@ -1030,18 +1030,7 @@ export default function MeetingTimer() {
                       className="w-full border-green-500 text-green-700 hover:bg-green-50"
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Export PDF
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        exportToExcel()
-                        setIsMobileMenuOpen(false)
-                      }}
-                      variant="outline"
-                      className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export Excel
+                      Download PDF
                     </Button>
                     <Button
                       onClick={() => {
@@ -1075,15 +1064,7 @@ export default function MeetingTimer() {
                   className="border-green-500 text-green-700 hover:bg-green-50 bg-transparent"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Export PDF
-                </Button>
-                <Button
-                  onClick={exportToExcel}
-                  variant="outline"
-                  className="border-blue-500 text-blue-700 hover:bg-blue-50 bg-transparent"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Excel
+                  Download PDF
                 </Button>
                 <Button
                   onClick={loadSegments}
