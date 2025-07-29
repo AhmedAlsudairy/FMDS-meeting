@@ -1179,209 +1179,6 @@ export default function MeetingTimer() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Edit Activity Form - Top Position */}
-            {isEditDialogOpen && editingSegment && (
-              <Card className="border-2 border-green-200 shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between pb-3">
-                  <CardTitle className="text-green-800 text-lg sm:text-xl">
-                    Edit Activity: {editingSegment.title}
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsEditDialogOpen(false)
-                      setEditingSegment(null)
-                      setShowDaySchedules(false)
-                    }}
-                    className="h-8 w-8 p-0 hover:bg-gray-100"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
-                      <Label htmlFor="edit-title" className="text-sm font-medium">
-                        Activity Title:
-                      </Label>
-                      <Input
-                        id="edit-title"
-                        value={editingSegment.title}
-                        onChange={(e) =>
-                          setEditingSegment((prev) => (prev ? { ...prev, title: e.target.value } : null))
-                        }
-                        disabled={saving}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-duration" className="text-sm font-medium">
-                        Duration (minutes):
-                      </Label>
-                      <Input
-                        id="edit-duration"
-                        type="number"
-                        value={editingSegment.duration}
-                        onChange={(e) =>
-                          setEditingSegment((prev) =>
-                            prev ? { ...prev, duration: Number.parseInt(e.target.value) || 0 } : null,
-                          )
-                        }
-                        disabled={saving}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-start-time" className="text-sm font-medium">
-                        Start Time:
-                      </Label>
-                      <Input
-                        id="edit-start-time"
-                        type="time"
-                        value={editingSegment.startTime}
-                        onChange={(e) =>
-                          setEditingSegment((prev) => (prev ? { ...prev, startTime: e.target.value } : null))
-                        }
-                        disabled={saving}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-end-time" className="text-sm font-medium">
-                        End Time (Auto-calculated):
-                      </Label>
-                      <Input
-                        id="edit-end-time"
-                        type="time"
-                        value={editingSegment.endTime}
-                        disabled={true}
-                        className="mt-1 bg-gray-100"
-                        title="End time is automatically calculated based on start time + duration"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Select Days:</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-2">
-                      {days.map((day) => (
-                        <div key={day} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`edit-${day}`}
-                            checked={editingSegment.days.includes(day)}
-                            onCheckedChange={(checked) => handleDayChange(day, checked as boolean)}
-                            disabled={saving}
-                          />
-                          <Label htmlFor={`edit-${day}`} className="text-sm">
-                            {day.slice(0, 3)}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Day-Specific Schedule Settings */}
-                  {editingSegment.days.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Day-Specific Schedules:</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowDaySchedules(!showDaySchedules)}
-                          className="text-xs"
-                        >
-                          {showDaySchedules ? "Hide" : "Show"} Individual Times
-                        </Button>
-                      </div>
-                      
-                      {showDaySchedules && (
-                        <div className="space-y-3 p-4 bg-gray-50 rounded-lg border">
-                          <p className="text-xs text-gray-600 mb-3">
-                            Set different start times and durations for each selected day
-                          </p>
-                          {editingSegment.days.map((day) => {
-                            const daySchedule = getOrCreateDaySchedule(editingSegment.daySchedules, day, editingSegment.startTime, editingSegment.duration)
-                            return (
-                              <div key={day} className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 bg-white rounded border">
-                                <div>
-                                  <Label className="text-xs font-medium text-gray-700">
-                                    {day}
-                                  </Label>
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-600">Start Time:</Label>
-                                  <Input
-                                    type="time"
-                                    value={daySchedule.startTime}
-                                    onChange={(e) => updateDaySchedule(day, 'startTime', e.target.value)}
-                                    disabled={saving}
-                                    className="mt-1 text-xs"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-600">Duration (min):</Label>
-                                  <Input
-                                    type="number"
-                                    value={daySchedule.duration}
-                                    onChange={(e) => updateDaySchedule(day, 'duration', Number.parseInt(e.target.value) || 0)}
-                                    disabled={saving}
-                                    className="mt-1 text-xs"
-                                    min="1"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-600">End Time:</Label>
-                                  <Input
-                                    type="time"
-                                    value={daySchedule.endTime}
-                                    disabled={true}
-                                    className="mt-1 text-xs bg-gray-100"
-                                    title="Auto-calculated based on start time + duration"
-                                  />
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                    <Button
-                      onClick={() => {
-                        if (editingSegment) {
-                          updateSegment(editingSegment.id, editingSegment)
-                          setIsEditDialogOpen(false)
-                          setEditingSegment(null)
-                          setShowDaySchedules(false)
-                        }
-                      }}
-                      className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
-                      disabled={saving}
-                    >
-                      {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditDialogOpen(false)
-                        setEditingSegment(null)
-                        setShowDaySchedules(false)
-                      }}
-                      disabled={saving}
-                      className="w-full sm:w-auto"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
             {/* Mobile-Responsive Day Selector */}
             <div>
               <Label className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4 block">
@@ -1399,7 +1196,11 @@ export default function MeetingTimer() {
                     const todaySegmentsCount = segments.filter((segment) => segment.days.includes(day)).length
                     const totalDuration = segments
                       .filter((segment) => segment.days.includes(day))
-                      .reduce((sum, seg) => sum + seg.duration, 0)
+                      .reduce((sum, seg) => {
+                        // Check if there's a day-specific schedule
+                        const daySchedule = seg.daySchedules?.find(ds => ds.day === day)
+                        return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                      }, 0)
                     return (
                       <option key={day} value={day}>
                         {day} - {todaySegmentsCount} activities ({totalDuration}min)
@@ -1417,7 +1218,11 @@ export default function MeetingTimer() {
                     const todaySegmentsCount = segments.filter((segment) => segment.days.includes(day)).length
                     const totalDuration = segments
                       .filter((segment) => segment.days.includes(day))
-                      .reduce((sum, seg) => sum + seg.duration, 0)
+                      .reduce((sum, seg) => {
+                        // Check if there's a day-specific schedule
+                        const daySchedule = seg.daySchedules?.find(ds => ds.day === day)
+                        return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                      }, 0)
 
                     return (
                       <button
@@ -1475,7 +1280,11 @@ export default function MeetingTimer() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-green-700 font-medium text-sm sm:text-base">
                     {selectedDay} Schedule - {todaySegments.length} activities (
-                    {todaySegments.reduce((sum, seg) => sum + seg.duration, 0)} minutes total)
+                    {todaySegments.reduce((sum, seg) => {
+                      // Check if there's a day-specific schedule
+                      const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+                      return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                    }, 0)} minutes total)
                   </span>
                 </div>
               </div>
@@ -1660,71 +1469,254 @@ export default function MeetingTimer() {
               <div className="block sm:hidden space-y-3">
                 {todaySegments.length > 0 ? (
                   todaySegments.map((segment, index) => (
-                    <Card key={segment.id} className="border border-gray-200 hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-semibold text-gray-900 text-sm">{segment.title}</h3>
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                              {(() => {
-                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
-                                return daySchedule ? `${daySchedule.duration}min` : `${segment.duration}min`
-                              })()}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                            <div>
-                              <span className="font-medium">Time:</span> {(() => {
-                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
-                                return daySchedule 
-                                  ? `${daySchedule.startTime} - ${daySchedule.endTime}`
-                                  : `${segment.startTime} - ${segment.endTime}`
-                              })()}
+                    <div key={segment.id}>
+                      <Card className="border border-gray-200 hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-semibold text-gray-900 text-sm">{segment.title}</h3>
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                {(() => {
+                                  const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                                  return daySchedule ? `${daySchedule.duration}min` : `${segment.duration}min`
+                                })()}
+                              </span>
                             </div>
-                            <div>
-                              <span className="font-medium">Days:</span> {segment.days.join(", ")}
+
+                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                              <div>
+                                <span className="font-medium">Time:</span> {(() => {
+                                  const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                                  return daySchedule 
+                                    ? `${daySchedule.startTime} - ${daySchedule.endTime}`
+                                    : `${segment.startTime} - ${segment.endTime}`
+                                })()}
+                              </div>
+                              <div>
+                                <span className="font-medium">Days:</span> {segment.days.join(", ")}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                onClick={() => startTimer(index)}
+                                size="sm"
+                                disabled={timer.isRunning || saving}
+                                className="bg-green-600 hover:bg-green-700 flex-1"
+                              >
+                                <Play className="w-3 h-3 mr-1" />
+                                Start
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setEditingSegment(segment)
+                                  setIsEditDialogOpen(true)
+                                  setIsAddDialogOpen(false)
+                                  setShowDaySchedules(false)
+                                }}
+                                size="sm"
+                                variant="outline"
+                                disabled={saving}
+                                className="flex-1"
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                onClick={() => deleteSegment(segment.id)}
+                                size="sm"
+                                variant="destructive"
+                                disabled={saving}
+                                className="px-3"
+                              >
+                                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                              </Button>
                             </div>
                           </div>
-
-                          <div className="flex gap-2 pt-2">
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Inline Edit Form for Mobile */}
+                      {isEditDialogOpen && editingSegment && editingSegment.id === segment.id && (
+                        <Card className="border-2 border-green-200 shadow-lg mt-2">
+                          <CardHeader className="flex flex-row items-center justify-between pb-3">
+                            <CardTitle className="text-green-800 text-sm">
+                              Edit: {editingSegment.title}
+                            </CardTitle>
                             <Button
-                              onClick={() => startTimer(index)}
+                              variant="ghost"
                               size="sm"
-                              disabled={timer.isRunning || saving}
-                              className="bg-green-600 hover:bg-green-700 flex-1"
-                            >
-                              <Play className="w-3 h-3 mr-1" />
-                              Start
-                            </Button>
-                            <Button
                               onClick={() => {
-                                setEditingSegment(segment)
-                                setIsEditDialogOpen(true)
-                                setIsAddDialogOpen(false)
+                                setIsEditDialogOpen(false)
+                                setEditingSegment(null)
                                 setShowDaySchedules(false)
                               }}
-                              size="sm"
-                              variant="outline"
-                              disabled={saving}
-                              className="flex-1"
+                              className="h-6 w-6 p-0 hover:bg-gray-100"
                             >
-                              <Edit className="w-3 h-3 mr-1" />
-                              Edit
+                              <X className="h-3 w-3" />
                             </Button>
-                            <Button
-                              onClick={() => deleteSegment(segment.id)}
-                              size="sm"
-                              variant="destructive"
-                              disabled={saving}
-                              className="px-3"
-                            >
-                              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          </CardHeader>
+                          <CardContent className="space-y-3 text-sm">
+                            <div className="grid grid-cols-1 gap-3">
+                              <div>
+                                <Label htmlFor={`edit-title-${segment.id}`} className="text-xs font-medium">
+                                  Activity Title:
+                                </Label>
+                                <Input
+                                  id={`edit-title-${segment.id}`}
+                                  value={editingSegment.title}
+                                  onChange={(e) =>
+                                    setEditingSegment((prev) => (prev ? { ...prev, title: e.target.value } : null))
+                                  }
+                                  disabled={saving}
+                                  className="mt-1 text-xs"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label htmlFor={`edit-duration-${segment.id}`} className="text-xs font-medium">
+                                    Duration (min):
+                                  </Label>
+                                  <Input
+                                    id={`edit-duration-${segment.id}`}
+                                    type="number"
+                                    value={editingSegment.duration}
+                                    onChange={(e) =>
+                                      setEditingSegment((prev) =>
+                                        prev ? { ...prev, duration: Number.parseInt(e.target.value) || 0 } : null,
+                                      )
+                                    }
+                                    disabled={saving}
+                                    className="mt-1 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`edit-start-time-${segment.id}`} className="text-xs font-medium">
+                                    Start Time:
+                                  </Label>
+                                  <Input
+                                    id={`edit-start-time-${segment.id}`}
+                                    type="time"
+                                    value={editingSegment.startTime}
+                                    onChange={(e) =>
+                                      setEditingSegment((prev) => (prev ? { ...prev, startTime: e.target.value } : null))
+                                    }
+                                    disabled={saving}
+                                    className="mt-1 text-xs"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs font-medium">Select Days:</Label>
+                              <div className="grid grid-cols-3 gap-2 mt-2">
+                                {days.map((day) => (
+                                  <div key={day} className="flex items-center space-x-1">
+                                    <Checkbox
+                                      id={`edit-${day}-${segment.id}`}
+                                      checked={editingSegment.days.includes(day)}
+                                      onCheckedChange={(checked) => handleDayChange(day, checked as boolean)}
+                                      disabled={saving}
+                                    />
+                                    <Label htmlFor={`edit-${day}-${segment.id}`} className="text-xs">
+                                      {day.slice(0, 3)}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Day-Specific Schedule Settings for Mobile */}
+                            {editingSegment.days.length > 0 && (
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-xs font-medium">Day-Specific Times:</Label>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowDaySchedules(!showDaySchedules)}
+                                    className="text-xs h-6 px-2"
+                                  >
+                                    {showDaySchedules ? "Hide" : "Show"}
+                                  </Button>
+                                </div>
+                                
+                                {showDaySchedules && (
+                                  <div className="space-y-2 p-3 bg-gray-50 rounded-lg border">
+                                    {editingSegment.days.map((day) => {
+                                      const daySchedule = getOrCreateDaySchedule(editingSegment.daySchedules, day, editingSegment.startTime, editingSegment.duration)
+                                      return (
+                                        <div key={day} className="grid grid-cols-2 gap-2 p-2 bg-white rounded border">
+                                          <div className="col-span-2">
+                                            <Label className="text-xs font-medium text-gray-700">
+                                              {day}
+                                            </Label>
+                                          </div>
+                                          <div>
+                                            <Label className="text-xs text-gray-600">Time:</Label>
+                                            <Input
+                                              type="time"
+                                              value={daySchedule.startTime}
+                                              onChange={(e) => updateDaySchedule(day, 'startTime', e.target.value)}
+                                              disabled={saving}
+                                              className="mt-1 text-xs h-6"
+                                            />
+                                          </div>
+                                          <div>
+                                            <Label className="text-xs text-gray-600">Duration:</Label>
+                                            <Input
+                                              type="number"
+                                              value={daySchedule.duration}
+                                              onChange={(e) => updateDaySchedule(day, 'duration', Number.parseInt(e.target.value) || 0)}
+                                              disabled={saving}
+                                              className="mt-1 text-xs h-6"
+                                              min="1"
+                                            />
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                onClick={() => {
+                                  if (editingSegment) {
+                                    updateSegment(editingSegment.id, editingSegment)
+                                    setIsEditDialogOpen(false)
+                                    setEditingSegment(null)
+                                    setShowDaySchedules(false)
+                                  }
+                                }}
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 flex-1 text-xs"
+                                disabled={saving}
+                              >
+                                {saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                {saving ? "Saving..." : "Save"}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setIsEditDialogOpen(false)
+                                  setEditingSegment(null)
+                                  setShowDaySchedules(false)
+                                }}
+                                size="sm"
+                                disabled={saving}
+                                className="flex-1 text-xs"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
                   ))
                 ) : (
                   <Card className="border border-gray-200">
