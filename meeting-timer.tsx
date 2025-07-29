@@ -17,7 +17,11 @@ interface TimerState {
   currentSegment: number
 }
 
-// TODO: Add support for multiple days
+interface DayMeetingTime {
+  startTime: string
+  endTime: string
+}
+
 export default function MeetingTimer() {
   const [segments, setSegments] = useState<MeetingSegment[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,6 +35,7 @@ export default function MeetingTimer() {
   const [selectedDay, setSelectedDay] = useState("Monday")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isTimeEditDialogOpen, setIsTimeEditDialogOpen] = useState(false)
   const [editingSegment, setEditingSegment] = useState<MeetingSegment | null>(null)
   const [newSegment, setNewSegment] = useState<Partial<MeetingSegment>>({
     title: "",
@@ -40,13 +45,23 @@ export default function MeetingTimer() {
     endTime: "7:10",
   })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [dayMeetingTimes, setDayMeetingTimes] = useState<Record<string, DayMeetingTime>>({
+    Sunday: { startTime: "7:10", endTime: "7:50" },
+    Monday: { startTime: "7:10", endTime: "7:50" },
+    Tuesday: { startTime: "7:10", endTime: "7:50" },
+    Wednesday: { startTime: "7:10", endTime: "7:50" },
+    Thursday: { startTime: "7:10", endTime: "7:50" },
+  })
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const { toast } = useToast()
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
-  const meetingTime = "7:10 AM - 7:50 AM"
+  
+  // Get current day's meeting time
+  const currentDayMeetingTime = dayMeetingTimes[selectedDay]
+  const meetingTime = `${currentDayMeetingTime.startTime} - ${currentDayMeetingTime.endTime}`
 
   // Get segments for selected day
   const todaySegments = segments.filter((segment) => segment.days.includes(selectedDay))
@@ -193,6 +208,21 @@ export default function MeetingTimer() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
+  const formatTimeForDisplay = (time: string) => {
+    const [hours, minutes] = time.split(":")
+    const hour24 = parseInt(hours)
+    const period = hour24 >= 12 ? "PM" : "AM"
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24
+    return `${hour12}:${minutes} ${period}`
+  }
+
+  const updateDayMeetingTime = (day: string, startTime: string, endTime: string) => {
+    setDayMeetingTimes(prev => ({
+      ...prev,
+      [day]: { startTime, endTime }
+    }))
+  }
+
   const updateSegment = async (id: string, updates: Partial<MeetingSegment>) => {
     try {
       setSaving(true)
@@ -300,6 +330,14 @@ export default function MeetingTimer() {
         const timeA = a.startTime || "00:00"
         const timeB = b.startTime || "00:00"
         return timeA.localeCompare(timeB)
+      })
+
+      // Calculate duration by day for summary
+      const dayDurations = days.map(day => {
+        const daySegments = sortedSegments.filter(segment => segment.days.includes(day))
+        const totalDuration = daySegments.reduce((sum, segment) => sum + segment.duration, 0)
+        const activityCount = daySegments.length
+        return { day, totalDuration, activityCount }
       })
 
       // Create HTML content for PDF with proper PDF generation
@@ -562,6 +600,49 @@ export default function MeetingTimer() {
     </tbody>
   </table>
   
+  <!-- Daily Duration Summary -->
+  <div style="margin: 30px 0 20px 0;">
+    <h3 style="font-size: 16pt; color: #2c3e50; margin-bottom: 15px; text-align: center; font-weight: bold; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+      📊 Daily Meeting Duration Summary
+    </h3>
+    <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+      ${dayDurations.map(({ day, totalDuration, activityCount }) => `
+        <div style="
+          background: ${totalDuration > 0 ? '#e8f5e8' : '#f8f9fa'} !important;
+          border: 2px solid ${totalDuration > 0 ? '#27ae60' : '#95a5a6'};
+          border-radius: 8px;
+          padding: 15px 20px;
+          text-align: center;
+          min-width: 120px;
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        ">
+          <div style="font-weight: bold; color: #2c3e50; font-size: 12pt; margin-bottom: 8px;">
+            ${day.slice(0, 3).toUpperCase()}
+          </div>
+          <div style="
+            background: ${totalDuration > 0 ? '#27ae60' : '#95a5a6'} !important;
+            color: white !important;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14pt;
+            margin-bottom: 5px;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          ">
+            ${totalDuration}min
+          </div>
+          <div style="color: #7f8c8d; font-size: 9pt;">
+            ${activityCount} ${activityCount === 1 ? 'activity' : 'activities'}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+  
   <div class="footer-info">
     <svg width="16" height="16" viewBox="0 0 148 148" style="display: inline-block; vertical-align: middle; margin-right: 8px;" xmlns="http://www.w3.org/2000/svg">
       <path fill="#FEFFFE" d="M73.000000,149.000000 C48.686802,149.000000 24.873606,149.000000 1.030205,149.000000 C1.030205,99.728500 1.030205,50.456978 1.030205,1.092727 C50.229679,1.092727 99.459587,1.092727 148.844757,1.092727 C148.844757,50.332954 148.844757,99.666420 148.844757,149.000000 C123.790642,149.000000 98.645317,149.000000 73.000000,149.000000"/>
@@ -640,7 +721,17 @@ export default function MeetingTimer() {
                 <span>Database Connected</span>
               </div>
             </CardTitle>
-            <p className="text-center text-muted-foreground text-sm sm:text-base">Daily meetings: {meetingTime}</p>
+            <div className="text-center text-muted-foreground text-sm sm:text-base flex items-center justify-center gap-2">
+              <span>Daily meetings: {formatTimeForDisplay(currentDayMeetingTime.startTime)} - {formatTimeForDisplay(currentDayMeetingTime.endTime)}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsTimeEditDialogOpen(true)}
+                className="text-xs p-1 h-6 hover:bg-green-50"
+              >
+                <Edit className="w-3 h-3" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6">
             {/* Mobile-Responsive Day Selector */}
@@ -770,6 +861,17 @@ export default function MeetingTimer() {
                     </Button>
                     <Button
                       onClick={() => {
+                        setIsTimeEditDialogOpen(true)
+                        setIsMobileMenuOpen(false)
+                      }}
+                      variant="outline"
+                      className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Meeting Times
+                    </Button>
+                    <Button
+                      onClick={() => {
                         exportToPDF()
                         setIsMobileMenuOpen(false)
                       }}
@@ -804,6 +906,14 @@ export default function MeetingTimer() {
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Activity
+                </Button>
+                <Button
+                  onClick={() => setIsTimeEditDialogOpen(true)}
+                  variant="outline"
+                  className="border-blue-500 text-blue-700 hover:bg-blue-50 bg-transparent"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Meeting Times
                 </Button>
                 <Button
                   onClick={exportToPDF}
@@ -1250,6 +1360,70 @@ export default function MeetingTimer() {
                         setEditingSegment(null)
                       }}
                       disabled={saving}
+                      className="w-full sm:w-auto"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Time Edit Dialog */}
+            {isTimeEditDialogOpen && (
+              <Card className="border-2 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-blue-800 text-lg sm:text-xl">Edit Meeting Times by Day</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    {days.map((day) => (
+                      <div key={day} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-center p-3 border border-gray-200 rounded-lg">
+                        <div className="sm:col-span-1">
+                          <Label className="text-sm font-medium">{day}:</Label>
+                        </div>
+                        <div className="sm:col-span-1">
+                          <Label htmlFor={`${day}-start`} className="text-xs text-gray-600">Start Time:</Label>
+                          <Input
+                            id={`${day}-start`}
+                            type="time"
+                            value={dayMeetingTimes[day].startTime}
+                            onChange={(e) => updateDayMeetingTime(day, e.target.value, dayMeetingTimes[day].endTime)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div className="sm:col-span-1">
+                          <Label htmlFor={`${day}-end`} className="text-xs text-gray-600">End Time:</Label>
+                          <Input
+                            id={`${day}-end`}
+                            type="time"
+                            value={dayMeetingTimes[day].endTime}
+                            onChange={(e) => updateDayMeetingTime(day, dayMeetingTimes[day].startTime, e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div className="sm:col-span-1 text-xs text-gray-500">
+                          {formatTimeForDisplay(dayMeetingTimes[day].startTime)} - {formatTimeForDisplay(dayMeetingTimes[day].endTime)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                    <Button
+                      onClick={() => {
+                        setIsTimeEditDialogOpen(false)
+                        toast({
+                          title: "Success",
+                          description: "Meeting times updated successfully.",
+                        })
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                    >
+                      Save Meeting Times
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsTimeEditDialogOpen(false)}
                       className="w-full sm:w-auto"
                     >
                       Cancel
