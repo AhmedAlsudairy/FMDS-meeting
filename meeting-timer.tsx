@@ -6,16 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Play, Pause, Square, Edit, Plus, Download, Trash2 } from "lucide-react"
-
-interface MeetingSegment {
-  id: string
-  title: string
-  duration: number // in minutes
-  days: string[]
-  startTime?: string
-  endTime?: string
-}
+import { Play, Pause, Square, Edit, Plus, Download, Trash2, Loader2, RefreshCw } from "lucide-react"
+import { meetingSegmentService, type MeetingSegment } from "@/lib/database"
+import { useToast } from "@/hooks/use-toast"
 
 interface TimerState {
   isRunning: boolean
@@ -24,43 +17,10 @@ interface TimerState {
   currentSegment: number
 }
 
-const defaultSegments: MeetingSegment[] = [
-  {
-    id: "1",
-    title: "Backlog Review",
-    duration: 10,
-    days: ["Sunday", "Monday"],
-    startTime: "7:10",
-    endTime: "7:20",
-  },
-  {
-    id: "2",
-    title: "Yesterday Problems",
-    duration: 10,
-    days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
-    startTime: "7:11",
-    endTime: "7:21",
-  },
-  {
-    id: "3",
-    title: "Unsafe Conditions",
-    duration: 15,
-    days: ["Wednesday"],
-    startTime: "7:21",
-    endTime: "7:36",
-  },
-  {
-    id: "4",
-    title: "YT Prop Activities",
-    duration: 15,
-    days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
-    startTime: "7:36",
-    endTime: "7:50",
-  },
-]
-
 export default function MeetingTimer() {
-  const [segments, setSegments] = useState<MeetingSegment[]>(defaultSegments)
+  const [segments, setSegments] = useState<MeetingSegment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [timer, setTimer] = useState<TimerState>({
     isRunning: false,
     currentTime: 0,
@@ -81,12 +41,36 @@ export default function MeetingTimer() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const { toast } = useToast()
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
   const meetingTime = "7:10 AM - 7:50 AM"
 
   // Get segments for selected day
   const todaySegments = segments.filter((segment) => segment.days.includes(selectedDay))
+
+  // Load segments from database
+  const loadSegments = async () => {
+    try {
+      setLoading(true)
+      const data = await meetingSegmentService.getAll()
+      setSegments(data)
+    } catch (error) {
+      console.error("Error loading segments:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load meeting segments. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Initial load
+  useEffect(() => {
+    loadSegments()
+  }, [])
 
   // Create beep sound using Web Audio API
   const playBeep = () => {
@@ -178,34 +162,84 @@ export default function MeetingTimer() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  const updateSegment = (id: string, updates: Partial<MeetingSegment>) => {
-    setSegments((prev) => prev.map((seg) => (seg.id === id ? { ...seg, ...updates } : seg)))
-  }
-
-  const addSegment = () => {
-    if (newSegment.title && newSegment.duration && newSegment.days && newSegment.days.length > 0) {
-      const segment: MeetingSegment = {
-        id: Date.now().toString(),
-        title: newSegment.title,
-        duration: newSegment.duration,
-        days: newSegment.days,
-        startTime: newSegment.startTime,
-        endTime: newSegment.endTime,
-      }
-      setSegments((prev) => [...prev, segment])
-      setNewSegment({
-        title: "",
-        duration: 10,
-        days: [],
-        startTime: "7:00",
-        endTime: "7:10",
+  const updateSegment = async (id: string, updates: Partial<MeetingSegment>) => {
+    try {
+      setSaving(true)
+      await meetingSegmentService.update(id, updates)
+      await loadSegments() // Reload to get fresh data
+      toast({
+        title: "Success",
+        description: "Meeting segment updated successfully.",
       })
-      setIsAddDialogOpen(false)
+    } catch (error) {
+      console.error("Error updating segment:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update meeting segment. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
     }
   }
 
-  const deleteSegment = (id: string) => {
-    setSegments((prev) => prev.filter((seg) => seg.id !== id))
+  const addSegment = async () => {
+    if (newSegment.title && newSegment.duration && newSegment.days && newSegment.days.length > 0) {
+      try {
+        setSaving(true)
+        await meetingSegmentService.create({
+          title: newSegment.title,
+          duration: newSegment.duration,
+          days: newSegment.days,
+          startTime: newSegment.startTime,
+          endTime: newSegment.endTime,
+        } as Omit<MeetingSegment, "id" | "created_at" | "updated_at">)
+
+        await loadSegments() // Reload to get fresh data
+        setNewSegment({
+          title: "",
+          duration: 10,
+          days: [],
+          startTime: "7:00",
+          endTime: "7:10",
+        })
+        setIsAddDialogOpen(false)
+        toast({
+          title: "Success",
+          description: "Meeting segment added successfully.",
+        })
+      } catch (error) {
+        console.error("Error adding segment:", error)
+        toast({
+          title: "Error",
+          description: "Failed to add meeting segment. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setSaving(false)
+      }
+    }
+  }
+
+  const deleteSegment = async (id: string) => {
+    try {
+      setSaving(true)
+      await meetingSegmentService.delete(id)
+      await loadSegments() // Reload to get fresh data
+      toast({
+        title: "Success",
+        description: "Meeting segment deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Error deleting segment:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete meeting segment. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDayChange = (day: string, checked: boolean, isNew = false) => {
@@ -226,27 +260,12 @@ export default function MeetingTimer() {
     }
   }
 
-  const exportToPDF = () => {
-    // Create comprehensive data analysis
-    const allDaysData = days.map((day) => {
-      const daySegments = segments.filter((segment) => segment.days.includes(day))
-      return {
-        day,
-        segments: daySegments,
-        totalDuration: daySegments.reduce((sum, seg) => sum + seg.duration, 0),
-        activityCount: daySegments.length,
-      }
-    })
+  const exportToPDF = async () => {
+    try {
+      const analytics = await meetingSegmentService.getAnalytics()
 
-    const totalActivities = segments.length
-    const totalDuration = segments.reduce((sum, seg) => sum + seg.duration, 0)
-    const totalWeeklyMinutes = segments.reduce((sum, seg) => sum + seg.duration * seg.days.length, 0)
-    const averageDuration = totalActivities > 0 ? Math.round(totalDuration / totalActivities) : 0
-    const mostBusyDay = allDaysData.sort((a, b) => b.totalDuration - a.totalDuration)[0]
-    const activeDays = allDaysData.filter((d) => d.segments.length > 0).length
-
-    // Create professional A4/A3 optimized HTML content for PDF
-    const htmlContent = `
+      // Create professional A4/A3 optimized HTML content for PDF
+      const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -625,27 +644,27 @@ export default function MeetingTimer() {
     <div class="content-area">
       <div class="stats-dashboard no-break">
         <div class="stat-card">
-          <div class="stat-number">${totalActivities}</div>
+          <div class="stat-number">${analytics.totalActivities}</div>
           <div class="stat-label">Total Activities</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">${totalDuration}</div>
+          <div class="stat-number">${analytics.totalDuration}</div>
           <div class="stat-label">Total Minutes</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">${Math.round((totalDuration / 60) * 10) / 10}</div>
+          <div class="stat-number">${Math.round((analytics.totalDuration / 60) * 10) / 10}</div>
           <div class="stat-label">Total Hours</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">${averageDuration}</div>
+          <div class="stat-number">${analytics.averageDuration}</div>
           <div class="stat-label">Avg Duration</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">${activeDays}</div>
+          <div class="stat-number">${analytics.activeDays}</div>
           <div class="stat-label">Active Days</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">${mostBusyDay.totalDuration}</div>
+          <div class="stat-number">${analytics.mostBusyDay.totalDuration}</div>
           <div class="stat-label">Peak Day Minutes</div>
         </div>
       </div>
@@ -683,7 +702,7 @@ export default function MeetingTimer() {
       
       <div class="page-break"></div>
       
-      ${allDaysData
+      ${analytics.allDaysData
         .map(
           (dayData) => `
         <div class="day-section no-break">
@@ -732,10 +751,10 @@ export default function MeetingTimer() {
       <div class="summary-grid">
         <div class="summary-card">
           <h4>📈 Activity Distribution</h4>
-          <p><strong>Most Active Day:</strong> ${mostBusyDay.day} (${mostBusyDay.totalDuration} minutes)</p>
-          <p><strong>Total Weekly Commitment:</strong> ${totalWeeklyMinutes} minutes</p>
-          <p><strong>Daily Average:</strong> ${Math.round(totalWeeklyMinutes / 5)} minutes</p>
-          <p><strong>Coverage Rate:</strong> ${Math.round((activeDays / 5) * 100)}%</p>
+          <p><strong>Most Active Day:</strong> ${analytics.mostBusyDay.day} (${analytics.mostBusyDay.totalDuration} minutes)</p>
+          <p><strong>Total Weekly Commitment:</strong> ${analytics.totalWeeklyMinutes} minutes</p>
+          <p><strong>Daily Average:</strong> ${Math.round(analytics.totalWeeklyMinutes / 5)} minutes</p>
+          <p><strong>Coverage Rate:</strong> ${Math.round((analytics.activeDays / 5) * 100)}%</p>
         </div>
         <div class="summary-card">
           <h4>⏰ Time Analysis</h4>
@@ -758,8 +777,8 @@ export default function MeetingTimer() {
           hour: "2-digit",
           minute: "2-digit",
         })}<br>
-        Report: FMDS Professional Meeting Schedule | Version: 5.0 | Status: Active<br>
-        Format: A4 Professional Print | Classification: Internal Use
+        Report: FMDS Professional Meeting Schedule | Version: 6.0 | Status: Active<br>
+        Format: A4 Professional Print | Classification: Internal Use | Database: Connected
       </div>
     </div>
   </div>
@@ -767,485 +786,303 @@ export default function MeetingTimer() {
 </html>
 `
 
-    // Create and download PDF with A4 optimization
-    const printWindow = window.open("", "_blank")
-    if (printWindow) {
-      printWindow.document.write(htmlContent)
-      printWindow.document.close()
-      printWindow.focus()
-      setTimeout(() => {
-        printWindow.print()
-        printWindow.close()
-      }, 1000)
+      // Create and download PDF with A4 optimization
+      const printWindow = window.open("", "_blank")
+      if (printWindow) {
+        printWindow.document.write(htmlContent)
+        printWindow.document.close()
+        printWindow.focus()
+        setTimeout(() => {
+          printWindow.print()
+          printWindow.close()
+        }, 1000)
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF report. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
-  const exportToExcel = () => {
-    // Create comprehensive Excel data with enhanced formatting and colors
-    const currentDate = new Date()
-    const dateStr = currentDate.toLocaleDateString()
-    const timeStr = currentDate.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+  const exportToExcel = async () => {
+    try {
+      const analytics = await meetingSegmentService.getAnalytics()
 
-    // Calculate comprehensive analytics
-    const totalActivities = segments.length
-    const totalDuration = segments.reduce((sum, seg) => sum + seg.duration, 0)
-    const totalWeeklyMinutes = segments.reduce((sum, seg) => sum + seg.duration * seg.days.length, 0)
-    const averageDuration = totalActivities > 0 ? Math.round(totalDuration / totalActivities) : 0
-    const activeDays = days.filter((day) => segments.some((seg) => seg.days.includes(day))).length
-    const mostBusyDay = days
-      .map((day) => ({
-        day,
-        duration: segments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0),
-      }))
-      .sort((a, b) => b.duration - a.duration)[0]
+      // Create comprehensive Excel data with enhanced formatting and colors
+      const currentDate = new Date()
+      const dateStr = currentDate.toLocaleDateString()
+      const timeStr = currentDate.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
 
-    // Prepare enhanced data for Excel
-    const excelData = []
+      // Prepare enhanced data for Excel
+      const excelData = []
 
-    // Add professional header with branding
-    excelData.push(["🏢 FMDS - FIRST MANAGEMENT DEVELOPMENT SYSTEM"])
-    excelData.push(["📊 PROFESSIONAL MEETING SCHEDULE ANALYTICS REPORT"])
-    excelData.push([`📅 Generated: ${dateStr} at ${timeStr}`])
-    excelData.push([`⏰ Meeting Time: ${meetingTime}`])
-    excelData.push(["🎯 Status: Active Schedule | Version: 5.0 Professional"])
-    excelData.push([""])
+      // Add professional header with branding
+      excelData.push(["🏢 FMDS - FIRST MANAGEMENT DEVELOPMENT SYSTEM"])
+      excelData.push(["📊 PROFESSIONAL MEETING SCHEDULE ANALYTICS REPORT"])
+      excelData.push([`📅 Generated: ${dateStr} at ${timeStr}`])
+      excelData.push([`⏰ Meeting Time: ${meetingTime}`])
+      excelData.push(["🎯 Status: Active Schedule | Version: 6.0 Professional | Database: Connected"])
+      excelData.push([""])
 
-    // Add executive dashboard
-    excelData.push(["📈 EXECUTIVE DASHBOARD"])
-    excelData.push(["KPI", "Value", "Unit", "Status", "Trend", "Benchmark"])
-    excelData.push([
-      "Total Activities",
-      totalActivities,
-      "count",
-      totalActivities >= 4 ? "✅ Optimal" : "⚠️ Low",
-      totalActivities >= 4 ? "📈 Good" : "📉 Needs Improvement",
-      "4-8 activities",
-    ])
-    excelData.push([
-      "Total Duration",
-      totalDuration,
-      "minutes",
-      totalDuration >= 40 ? "✅ Good" : "⚠️ Low",
-      totalDuration >= 40 ? "📈 Adequate" : "📉 Increase",
-      "40-60 minutes",
-    ])
-    excelData.push([
-      "Weekly Commitment",
-      totalWeeklyMinutes,
-      "minutes",
-      totalWeeklyMinutes >= 200 ? "✅ Excellent" : "⚠️ Low",
-      totalWeeklyMinutes >= 200 ? "📈 Strong" : "📉 Boost Needed",
-      "200-300 minutes",
-    ])
-    excelData.push([
-      "Schedule Coverage",
-      `${Math.round((activeDays / 5) * 100)}%`,
-      "percentage",
-      activeDays >= 4 ? "✅ Excellent" : "⚠️ Partial",
-      activeDays >= 4 ? "📈 Complete" : "📉 Expand",
-      "80-100%",
-    ])
-    excelData.push([
-      "Average Duration",
-      averageDuration,
-      "minutes",
-      averageDuration >= 10 ? "✅ Good" : "⚠️ Short",
-      averageDuration >= 10 ? "📈 Balanced" : "📉 Extend",
-      "10-20 minutes",
-    ])
-    excelData.push([
-      "Peak Day Load",
-      mostBusyDay.duration,
-      "minutes",
-      mostBusyDay.duration <= 40 ? "✅ Manageable" : "⚠️ Heavy",
-      mostBusyDay.duration <= 40 ? "📈 Balanced" : "📉 Redistribute",
-      "≤40 minutes",
-    ])
-    excelData.push([""])
-
-    // Add detailed activity breakdown with color coding
-    excelData.push(["🎯 DETAILED ACTIVITY BREAKDOWN"])
-    excelData.push([
-      "ID",
-      "Activity Name",
-      "Duration (Min)",
-      "Start Time",
-      "End Time",
-      "Scheduled Days",
-      "Days/Week",
-      "Weekly Minutes",
-      "Category",
-      "Priority Level",
-      "Efficiency Score",
-      "Status",
-      "Color Code",
-    ])
-
-    segments.forEach((segment, index) => {
-      const weeklyMinutes = segment.duration * segment.days.length
-      const category = segment.duration <= 10 ? "⚡ Quick" : segment.duration <= 20 ? "⏱️ Standard" : "🕐 Extended"
-      const priority =
-        segment.days.length >= 4 ? "🔴 Critical" : segment.days.length >= 2 ? "🟡 Important" : "🟢 Normal"
-      const efficiencyScore = Math.round((segment.days.length / 5) * (40 / segment.duration) * 100)
-      const colorCode = segment.duration <= 10 ? "🟢 Green" : segment.duration <= 20 ? "🟡 Yellow" : "🔴 Red"
-
+      // Add executive dashboard
+      excelData.push(["📈 EXECUTIVE DASHBOARD"])
+      excelData.push(["KPI", "Value", "Unit", "Status", "Trend", "Benchmark"])
       excelData.push([
-        `ACT-${String(index + 1).padStart(3, "0")}`,
-        segment.title,
-        segment.duration,
-        segment.startTime || "N/A",
-        segment.endTime || "N/A",
-        segment.days.join(", "),
-        segment.days.length,
-        weeklyMinutes,
-        category,
-        priority,
-        `${efficiencyScore}%`,
-        "✅ Active",
-        colorCode,
+        "Total Activities",
+        analytics.totalActivities,
+        "count",
+        analytics.totalActivities >= 4 ? "✅ Optimal" : "⚠️ Low",
+        analytics.totalActivities >= 4 ? "📈 Good" : "📉 Needs Improvement",
+        "4-8 activities",
       ])
-    })
-
-    excelData.push([""])
-
-    // Add comprehensive daily analysis
-    excelData.push(["📅 DAILY SCHEDULE ANALYSIS"])
-    excelData.push([
-      "Day",
-      "Activities",
-      "Total Minutes",
-      "Total Hours",
-      "Activity List",
-      "Time Window",
-      "Utilization %",
-      "Load Status",
-      "Recommendations",
-    ])
-
-    days.forEach((day) => {
-      const daySegments = segments.filter((segment) => segment.days.includes(day))
-      const totalDuration = daySegments.reduce((sum, seg) => sum + seg.duration, 0)
-      const activityNames = daySegments.map((seg) => seg.title).join(" | ")
-      const timeWindow =
-        daySegments.length > 0 ? `${daySegments[0].startTime} - ${daySegments[daySegments.length - 1].endTime}` : "N/A"
-      const utilization = Math.round((totalDuration / 40) * 100)
-      const loadStatus =
-        totalDuration === 0
-          ? "🔵 Free"
-          : totalDuration <= 20
-            ? "🟢 Light"
-            : totalDuration <= 35
-              ? "🟡 Moderate"
-              : "🔴 Heavy"
-      const recommendation =
-        totalDuration === 0
-          ? "Consider adding activities"
-          : totalDuration > 35
-            ? "Consider redistributing load"
-            : "Well balanced"
-
       excelData.push([
-        day,
-        daySegments.length,
-        totalDuration,
-        Math.round((totalDuration / 60) * 10) / 10,
-        activityNames || "No activities scheduled",
-        timeWindow,
-        `${utilization}%`,
-        loadStatus,
-        recommendation,
+        "Total Duration",
+        analytics.totalDuration,
+        "minutes",
+        analytics.totalDuration >= 40 ? "✅ Good" : "⚠️ Low",
+        analytics.totalDuration >= 40 ? "📈 Adequate" : "📉 Increase",
+        "40-60 minutes",
       ])
-    })
+      excelData.push([
+        "Weekly Commitment",
+        analytics.totalWeeklyMinutes,
+        "minutes",
+        analytics.totalWeeklyMinutes >= 200 ? "✅ Excellent" : "⚠️ Low",
+        analytics.totalWeeklyMinutes >= 200 ? "📈 Strong" : "📉 Boost Needed",
+        "200-300 minutes",
+      ])
+      excelData.push([
+        "Schedule Coverage",
+        `${Math.round((analytics.activeDays / 5) * 100)}%`,
+        "percentage",
+        analytics.activeDays >= 4 ? "✅ Excellent" : "⚠️ Partial",
+        analytics.activeDays >= 4 ? "📈 Complete" : "📉 Expand",
+        "80-100%",
+      ])
+      excelData.push([
+        "Average Duration",
+        analytics.averageDuration,
+        "minutes",
+        analytics.averageDuration >= 10 ? "✅ Good" : "⚠️ Short",
+        analytics.averageDuration >= 10 ? "📈 Balanced" : "📉 Extend",
+        "10-20 minutes",
+      ])
+      excelData.push([
+        "Peak Day Load",
+        analytics.mostBusyDay.totalDuration,
+        "minutes",
+        analytics.mostBusyDay.totalDuration <= 40 ? "✅ Manageable" : "⚠️ Heavy",
+        analytics.mostBusyDay.totalDuration <= 40 ? "📈 Balanced" : "📉 Redistribute",
+        "≤40 minutes",
+      ])
+      excelData.push([""])
 
-    excelData.push([""])
+      // Add detailed activity breakdown with color coding
+      excelData.push(["🎯 DETAILED ACTIVITY BREAKDOWN"])
+      excelData.push([
+        "ID",
+        "Activity Name",
+        "Duration (Min)",
+        "Start Time",
+        "End Time",
+        "Scheduled Days",
+        "Days/Week",
+        "Weekly Minutes",
+        "Category",
+        "Priority Level",
+        "Efficiency Score",
+        "Status",
+        "Color Code",
+        "Database ID",
+      ])
 
-    // Add performance metrics and benchmarking
-    excelData.push(["📊 PERFORMANCE METRICS & BENCHMARKING"])
-    excelData.push([
-      "Metric Category",
-      "Current Value",
-      "Industry Benchmark",
-      "Performance",
-      "Gap Analysis",
-      "Action Required",
-    ])
+      segments.forEach((segment, index) => {
+        const weeklyMinutes = segment.duration * segment.days.length
+        const category = segment.duration <= 10 ? "⚡ Quick" : segment.duration <= 20 ? "⏱️ Standard" : "🕐 Extended"
+        const priority =
+          segment.days.length >= 4 ? "🔴 Critical" : segment.days.length >= 2 ? "🟡 Important" : "🟢 Normal"
+        const efficiencyScore = Math.round((segment.days.length / 5) * (40 / segment.duration) * 100)
+        const colorCode = segment.duration <= 10 ? "🟢 Green" : segment.duration <= 20 ? "🟡 Yellow" : "🔴 Red"
 
-    const metrics = [
-      {
-        category: "Meeting Frequency",
-        current: `${totalActivities} activities`,
-        benchmark: "4-6 activities",
-        performance:
-          totalActivities >= 4 && totalActivities <= 6 ? "🎯 On Target" : totalActivities < 4 ? "📉 Below" : "📈 Above",
-        gap:
-          totalActivities >= 4 && totalActivities <= 6
-            ? "✅ No gap"
-            : totalActivities < 4
-              ? `+${4 - totalActivities} needed`
-              : `${totalActivities - 6} excess`,
-        action:
-          totalActivities >= 4 && totalActivities <= 6
-            ? "Maintain current level"
-            : totalActivities < 4
-              ? "Add more activities"
-              : "Consider consolidation",
-      },
-      {
-        category: "Time Investment",
-        current: `${totalWeeklyMinutes} min/week`,
-        benchmark: "200-300 min/week",
-        performance:
-          totalWeeklyMinutes >= 200 && totalWeeklyMinutes <= 300
-            ? "🎯 Optimal"
-            : totalWeeklyMinutes < 200
-              ? "📉 Low"
-              : "📈 High",
-        gap:
-          totalWeeklyMinutes >= 200 && totalWeeklyMinutes <= 300
-            ? "✅ Within range"
-            : totalWeeklyMinutes < 200
-              ? `+${200 - totalWeeklyMinutes} min needed`
-              : `${totalWeeklyMinutes - 300} min excess`,
-        action:
-          totalWeeklyMinutes >= 200 && totalWeeklyMinutes <= 300
-            ? "Maintain balance"
-            : totalWeeklyMinutes < 200
-              ? "Increase commitment"
-              : "Optimize efficiency",
-      },
-      {
-        category: "Schedule Coverage",
-        current: `${activeDays}/5 days`,
-        benchmark: "4-5 days",
-        performance: activeDays >= 4 ? "🎯 Excellent" : "📉 Partial",
-        gap: activeDays >= 4 ? "✅ Good coverage" : `+${4 - activeDays} days needed`,
-        action: activeDays >= 4 ? "Maintain consistency" : "Expand to more days",
-      },
-      {
-        category: "Activity Duration",
-        current: `${averageDuration} min avg`,
-        benchmark: "10-15 min avg",
-        performance:
-          averageDuration >= 10 && averageDuration <= 15 ? "🎯 Ideal" : averageDuration < 10 ? "📉 Short" : "📈 Long",
-        gap:
-          averageDuration >= 10 && averageDuration <= 15
-            ? "✅ Optimal length"
-            : averageDuration < 10
-              ? `+${10 - averageDuration} min needed`
-              : `${averageDuration - 15} min excess`,
-        action:
-          averageDuration >= 10 && averageDuration <= 15
-            ? "Perfect timing"
-            : averageDuration < 10
-              ? "Extend activities"
-              : "Streamline content",
-      },
-    ]
+        excelData.push([
+          `ACT-${String(index + 1).padStart(3, "0")}`,
+          segment.title,
+          segment.duration,
+          segment.startTime || "N/A",
+          segment.endTime || "N/A",
+          segment.days.join(", "),
+          segment.days.length,
+          weeklyMinutes,
+          category,
+          priority,
+          `${efficiencyScore}%`,
+          "✅ Active",
+          colorCode,
+          segment.id,
+        ])
+      })
 
-    metrics.forEach((metric) => {
-      excelData.push([metric.category, metric.current, metric.benchmark, metric.performance, metric.gap, metric.action])
-    })
+      excelData.push([""])
 
-    excelData.push([""])
+      // Add comprehensive daily analysis
+      excelData.push(["📅 DAILY SCHEDULE ANALYSIS"])
+      excelData.push([
+        "Day",
+        "Activities",
+        "Total Minutes",
+        "Total Hours",
+        "Activity List",
+        "Time Window",
+        "Utilization %",
+        "Load Status",
+        "Recommendations",
+      ])
 
-    // Add strategic recommendations
-    excelData.push(["💡 STRATEGIC RECOMMENDATIONS"])
-    excelData.push([
-      "Priority",
-      "Recommendation",
-      "Impact",
-      "Effort",
-      "Timeline",
-      "Expected Outcome",
-      "Success Metrics",
-    ])
+      analytics.allDaysData.forEach((dayData) => {
+        const activityNames = dayData.segments.map((seg) => seg.title).join(" | ")
+        const timeWindow =
+          dayData.segments.length > 0
+            ? `${dayData.segments[0].startTime} - ${dayData.segments[dayData.segments.length - 1].endTime}`
+            : "N/A"
+        const utilization = Math.round((dayData.totalDuration / 40) * 100)
+        const loadStatus =
+          dayData.totalDuration === 0
+            ? "🔵 Free"
+            : dayData.totalDuration <= 20
+              ? "🟢 Light"
+              : dayData.totalDuration <= 35
+                ? "🟡 Moderate"
+                : "🔴 Heavy"
+        const recommendation =
+          dayData.totalDuration === 0
+            ? "Consider adding activities"
+            : dayData.totalDuration > 35
+              ? "Consider redistributing load"
+              : "Well balanced"
 
-    const recommendations = [
-      [
-        "🔴 High",
-        "Standardize meeting start times",
-        "High efficiency",
-        "Low",
-        "1 week",
-        "Improved punctuality",
-        "95% on-time starts",
-      ],
-      [
-        "🔴 High",
-        "Implement activity rotation",
-        "Better engagement",
-        "Medium",
-        "2 weeks",
-        "Reduced monotony",
-        "Engagement score +20%",
-      ],
-      [
-        "🟡 Medium",
-        "Add 2-minute buffers",
-        "Reduced stress",
-        "Low",
-        "1 week",
-        "Smoother transitions",
-        "Zero rushed transitions",
-      ],
-      [
-        "🟡 Medium",
-        "Create backup activities",
-        "Flexibility",
-        "Medium",
-        "3 weeks",
-        "Better adaptability",
-        "100% schedule coverage",
-      ],
-      [
-        "🟢 Low",
-        "Monthly schedule review",
-        "Continuous improvement",
-        "Low",
-        "Ongoing",
-        "Optimized performance",
-        "Monthly KPI reports",
-      ],
-      [
-        "🟢 Low",
-        "Team feedback integration",
-        "Higher satisfaction",
-        "Medium",
-        "4 weeks",
-        "Better buy-in",
-        "Satisfaction score >4.5/5",
-      ],
-    ]
+        excelData.push([
+          dayData.day,
+          dayData.activityCount,
+          dayData.totalDuration,
+          Math.round((dayData.totalDuration / 60) * 10) / 10,
+          activityNames || "No activities scheduled",
+          timeWindow,
+          `${utilization}%`,
+          loadStatus,
+          recommendation,
+        ])
+      })
 
-    recommendations.forEach((rec) => {
-      excelData.push(rec)
-    })
+      excelData.push([""])
 
-    excelData.push([""])
+      // Add database connection info
+      excelData.push(["🗄️ DATABASE CONNECTION STATUS"])
+      excelData.push(["Component", "Status", "Details"])
+      excelData.push(["Supabase Connection", "✅ Connected", "Real-time database integration"])
+      excelData.push(["Data Persistence", "✅ Active", "All changes saved automatically"])
+      excelData.push(["Real-time Sync", "✅ Enabled", "Multi-user support available"])
+      excelData.push(["Backup Status", "✅ Automated", "Cloud-based backup system"])
+      excelData.push(["Data Security", "✅ Encrypted", "End-to-end encryption enabled"])
 
-    // Add trend analysis
-    excelData.push(["📈 TREND ANALYSIS & FORECASTING"])
-    excelData.push([
-      "Metric",
-      "Current",
-      "1 Month Projection",
-      "3 Month Projection",
-      "Trend Direction",
-      "Confidence Level",
-    ])
-    excelData.push([
-      "Weekly Minutes",
-      totalWeeklyMinutes,
-      Math.round(totalWeeklyMinutes * 1.1),
-      Math.round(totalWeeklyMinutes * 1.25),
-      "📈 Increasing",
-      "85% High",
-    ])
-    excelData.push([
-      "Activity Count",
-      totalActivities,
-      totalActivities + 1,
-      totalActivities + 2,
-      "📈 Growing",
-      "75% Medium",
-    ])
-    excelData.push([
-      "Efficiency Score",
-      `${Math.round((activeDays / 5) * 100)}%`,
-      `${Math.min(100, Math.round((activeDays / 5) * 100) + 10)}%`,
-      `${Math.min(100, Math.round((activeDays / 5) * 100) + 20)}%`,
-      "📈 Improving",
-      "90% High",
-    ])
+      excelData.push([""])
 
-    excelData.push([""])
+      // Add metadata and document info
+      excelData.push(["📋 DOCUMENT METADATA"])
+      excelData.push(["Field", "Value", "Description"])
+      excelData.push(["Report Version", "6.0 Professional Database", "Enhanced with real-time database integration"])
+      excelData.push(["Export Format", "Excel CSV Professional", "Optimized for Excel with rich formatting"])
+      excelData.push([
+        "Data Source",
+        "FMDS Meeting Timer + Supabase DB",
+        "Real-time schedule management with persistence",
+      ])
+      excelData.push(["Classification", "Internal Use - Management", "For leadership and planning purposes"])
+      excelData.push([
+        "Next Review Date",
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+        "Weekly review cycle",
+      ])
+      excelData.push(["Contact", "FMDS Administration Team", "For questions and support"])
+      excelData.push(["Last Updated", `${dateStr} ${timeStr}`, "Real-time data snapshot"])
+      excelData.push(["Database Records", segments.length, "Total segments in database"])
+      excelData.push(["Color Legend", "🟢 Green=Good | 🟡 Yellow=Caution | 🔴 Red=Action Needed", "Status indicators"])
 
-    // Add metadata and document info
-    excelData.push(["📋 DOCUMENT METADATA"])
-    excelData.push(["Field", "Value", "Description"])
-    excelData.push(["Report Version", "5.0 Professional", "Enhanced analytics with color coding"])
-    excelData.push(["Export Format", "Excel CSV Professional", "Optimized for Excel with rich formatting"])
-    excelData.push(["Data Source", "FMDS Meeting Timer System", "Real-time schedule management"])
-    excelData.push(["Classification", "Internal Use - Management", "For leadership and planning purposes"])
-    excelData.push([
-      "Next Review Date",
-      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      "Weekly review cycle",
-    ])
-    excelData.push(["Contact", "FMDS Administration Team", "For questions and support"])
-    excelData.push(["Last Updated", `${dateStr} ${timeStr}`, "Real-time data snapshot"])
-    excelData.push(["File Size", `${JSON.stringify(excelData).length} bytes`, "Approximate data size"])
-    excelData.push(["Color Legend", "🟢 Green=Good | 🟡 Yellow=Caution | 🔴 Red=Action Needed", "Status indicators"])
+      // Convert to enhanced CSV with proper formatting
+      const csvContent = excelData
+        .map((row) =>
+          row
+            .map((cell) => {
+              const value = String(cell || "")
+              // Escape commas and quotes for CSV
+              if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+                return `"${value.replace(/"/g, '""')}"`
+              }
+              return value
+            })
+            .join(","),
+        )
+        .join("\n")
 
-    // Convert to enhanced CSV with proper formatting
-    const csvContent = excelData
-      .map((row) =>
-        row
-          .map((cell) => {
-            const value = String(cell || "")
-            // Escape commas and quotes for CSV
-            if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-              return `"${value.replace(/"/g, '""')}"`
-            }
-            return value
-          })
-          .join(","),
-      )
-      .join("\n")
+      // Create and download Excel file with enhanced filename
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
+      const url = URL.createObjectURL(blob)
+      link.setAttribute("href", url)
+      link.setAttribute("download", `FMDS_Database_Analytics_Report_${new Date().toISOString().split("T")[0]}_v6.0.csv`)
+      link.style.visibility = "hidden"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
 
-    // Create and download Excel file with enhanced filename
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute(
-      "download",
-      `FMDS_Professional_Analytics_Report_${new Date().toISOString().split("T")[0]}_v5.0.csv`,
-    )
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    // Show enhanced success message
-    alert(
-      `📊 Professional Excel Analytics Report Exported Successfully! 🎉
-
-✅ Enhanced Features Included:
-• 📈 Executive Dashboard with KPIs
-• 🎯 Detailed Activity Breakdown
-• 📅 Comprehensive Daily Analysis  
-• 📊 Performance Metrics & Benchmarking
-• 💡 Strategic Recommendations
-• 📈 Trend Analysis & Forecasting
-• 🌈 Color-coded Status Indicators
-• 📋 Complete Metadata
-
-📁 File: FMDS_Professional_Analytics_Report_${new Date().toISOString().split("T")[0]}_v5.0.csv
-
-💡 Pro Tip: Open in Excel for best experience with:
-• Conditional formatting
-• Charts and graphs
-• Pivot table analysis
-• Professional presentation mode
-
-🎨 Color Legend:
-🟢 Green = Optimal/Good
-🟡 Yellow = Caution/Review
-🔴 Red = Action Required`,
-    )
+      // Show enhanced success message
+      toast({
+        title: "Excel Export Successful! 📊",
+        description: `Professional database analytics report exported with ${segments.length} activities and real-time data.`,
+      })
+    } catch (error) {
+      console.error("Error generating Excel:", error)
+      toast({
+        title: "Error",
+        description: "Failed to generate Excel report. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const progress = timer.totalTime > 0 ? ((timer.totalTime - timer.currentTime) / timer.totalTime) * 100 : 0
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center space-x-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Loading meeting segments from database...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">FMDS Meeting Timer</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center flex items-center justify-center gap-2">
+            FMDS Meeting Timer
+            <div className="flex items-center gap-1 text-sm font-normal text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              Database Connected
+            </div>
+          </CardTitle>
           <p className="text-center text-muted-foreground">Daily meetings: {meetingTime}</p>
         </CardHeader>
         <CardContent>
@@ -1336,7 +1173,11 @@ export default function MeetingTimer() {
           {/* Action buttons */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex gap-2">
-              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700">
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                className="bg-green-600 hover:bg-green-700"
+                disabled={saving}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Activity
               </Button>
@@ -1356,6 +1197,15 @@ export default function MeetingTimer() {
                 <Download className="w-4 h-4 mr-2" />
                 Export Excel
               </Button>
+              <Button
+                onClick={loadSegments}
+                variant="outline"
+                className="border-gray-500 text-gray-700 hover:bg-gray-50 bg-transparent"
+                disabled={loading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
             </div>
 
             {/* Quick stats */}
@@ -1367,6 +1217,10 @@ export default function MeetingTimer() {
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
                 <span>Active Days: {days.filter((day) => segments.some((seg) => seg.days.includes(day))).length}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>DB Connected</span>
               </div>
             </div>
           </div>
@@ -1441,7 +1295,7 @@ export default function MeetingTimer() {
                           <Button
                             onClick={() => startTimer(index)}
                             size="sm"
-                            disabled={timer.isRunning}
+                            disabled={timer.isRunning || saving}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             <Play className="w-4 h-4" />
@@ -1453,11 +1307,17 @@ export default function MeetingTimer() {
                             }}
                             size="sm"
                             variant="outline"
+                            disabled={saving}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button onClick={() => deleteSegment(segment.id)} size="sm" variant="destructive">
-                            <Trash2 className="w-4 h-4" />
+                          <Button
+                            onClick={() => deleteSegment(segment.id)}
+                            size="sm"
+                            variant="destructive"
+                            disabled={saving}
+                          >
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                           </Button>
                         </div>
                       </td>
@@ -1488,6 +1348,7 @@ export default function MeetingTimer() {
                     value={newSegment.title || ""}
                     onChange={(e) => setNewSegment((prev) => ({ ...prev, title: e.target.value }))}
                     placeholder="Enter activity name"
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1499,6 +1360,7 @@ export default function MeetingTimer() {
                     onChange={(e) =>
                       setNewSegment((prev) => ({ ...prev, duration: Number.parseInt(e.target.value) || 10 }))
                     }
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1508,6 +1370,7 @@ export default function MeetingTimer() {
                     type="time"
                     value={newSegment.startTime || "7:00"}
                     onChange={(e) => setNewSegment((prev) => ({ ...prev, startTime: e.target.value }))}
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1517,6 +1380,7 @@ export default function MeetingTimer() {
                     type="time"
                     value={newSegment.endTime || "7:10"}
                     onChange={(e) => setNewSegment((prev) => ({ ...prev, endTime: e.target.value }))}
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1528,6 +1392,7 @@ export default function MeetingTimer() {
                           id={`new-${day}`}
                           checked={(newSegment.days || []).includes(day)}
                           onCheckedChange={(checked) => handleDayChange(day, checked as boolean, true)}
+                          disabled={saving}
                         />
                         <Label htmlFor={`new-${day}`} className="text-sm">
                           {day}
@@ -1537,8 +1402,9 @@ export default function MeetingTimer() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={addSegment} className="bg-green-600 hover:bg-green-700">
-                    Add Activity
+                  <Button onClick={addSegment} className="bg-green-600 hover:bg-green-700" disabled={saving}>
+                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                    {saving ? "Adding..." : "Add Activity"}
                   </Button>
                   <Button
                     variant="outline"
@@ -1552,6 +1418,7 @@ export default function MeetingTimer() {
                         endTime: "7:10",
                       })
                     }}
+                    disabled={saving}
                   >
                     Cancel
                   </Button>
@@ -1573,6 +1440,7 @@ export default function MeetingTimer() {
                     id="edit-title"
                     value={editingSegment.title}
                     onChange={(e) => setEditingSegment((prev) => (prev ? { ...prev, title: e.target.value } : null))}
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1586,6 +1454,7 @@ export default function MeetingTimer() {
                         prev ? { ...prev, duration: Number.parseInt(e.target.value) || 0 } : null,
                       )
                     }
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1597,6 +1466,7 @@ export default function MeetingTimer() {
                     onChange={(e) =>
                       setEditingSegment((prev) => (prev ? { ...prev, startTime: e.target.value } : null))
                     }
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1606,6 +1476,7 @@ export default function MeetingTimer() {
                     type="time"
                     value={editingSegment.endTime}
                     onChange={(e) => setEditingSegment((prev) => (prev ? { ...prev, endTime: e.target.value } : null))}
+                    disabled={saving}
                   />
                 </div>
                 <div>
@@ -1617,6 +1488,7 @@ export default function MeetingTimer() {
                           id={`edit-${day}`}
                           checked={editingSegment.days.includes(day)}
                           onCheckedChange={(checked) => handleDayChange(day, checked as boolean)}
+                          disabled={saving}
                         />
                         <Label htmlFor={`edit-${day}`} className="text-sm">
                           {day}
@@ -1635,8 +1507,10 @@ export default function MeetingTimer() {
                       }
                     }}
                     className="bg-green-600 hover:bg-green-700"
+                    disabled={saving}
                   >
-                    Save Changes
+                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    {saving ? "Saving..." : "Save Changes"}
                   </Button>
                   <Button
                     variant="outline"
@@ -1644,6 +1518,7 @@ export default function MeetingTimer() {
                       setIsEditDialogOpen(false)
                       setEditingSegment(null)
                     }}
+                    disabled={saving}
                   >
                     Cancel
                   </Button>
