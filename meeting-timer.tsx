@@ -50,8 +50,21 @@ export default function MeetingTimer() {
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
   const meetingTime = "7:10 AM - 7:50 AM"
 
-  // Get segments for selected day
-  const todaySegments = segments.filter((segment) => segment.days.includes(selectedDay))
+  // Get segments for selected day and sort by start time
+  const todaySegments = segments
+    .filter((segment) => segment.days.includes(selectedDay))
+    .sort((a, b) => {
+      // Get start time for segment a (use day-specific time if available)
+      const dayScheduleA = a.daySchedules?.find(ds => ds.day === selectedDay)
+      const startTimeA = dayScheduleA ? dayScheduleA.startTime : a.startTime
+      
+      // Get start time for segment b (use day-specific time if available)
+      const dayScheduleB = b.daySchedules?.find(ds => ds.day === selectedDay)
+      const startTimeB = dayScheduleB ? dayScheduleB.startTime : b.startTime
+      
+      // Compare times (format: "HH:MM")
+      return (startTimeA || "00:00").localeCompare(startTimeB || "00:00")
+    })
 
   // Calculate end time based on start time and duration
   const calculateEndTime = (startTime: string, duration: number): string => {
@@ -403,15 +416,15 @@ export default function MeetingTimer() {
     
     @page {
       size: A3 landscape;
-      margin: 10mm;
+      margin: 8mm;
     }
     
     body { 
       font-family: Arial, sans-serif;
-      line-height: 1.3;
+      line-height: 1.2;
       color: #000;
       background: white;
-      font-size: 9pt;
+      font-size: 11pt;
       padding: 0;
     }
     
@@ -424,39 +437,39 @@ export default function MeetingTimer() {
     }
     
     .table-title {
-      font-size: 16pt;
+      font-size: 22pt;
       color: #2c3e50;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       text-align: center;
       font-weight: bold;
       border-bottom: 2px solid #3498db;
-      padding-bottom: 10px;
+      padding-bottom: 8px;
     }
     
     .main-table { 
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
     
     .main-table th { 
       background: #2c3e50 !important;
       color: white !important;
-      padding: 8px 6px;
+      padding: 12px 8px;
       text-align: center;
       font-weight: bold;
       border: 1px solid #34495e;
-      font-size: 8pt;
+      font-size: 11pt;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
     
     .main-table td { 
-      padding: 6px 4px;
+      padding: 10px 6px;
       border: 1px solid #ddd;
       text-align: center;
-      font-size: 8pt;
+      font-size: 10pt;
     }
     
     .main-table tr:nth-child(even) {
@@ -471,14 +484,16 @@ export default function MeetingTimer() {
       color: #2c3e50;
       text-align: left;
       padding-left: 12px !important;
+      font-size: 11pt;
     }
     
     .duration-badge {
       background: #3498db !important;
       color: white !important;
-      padding: 4px 8px;
+      padding: 6px 10px;
       border-radius: 4px;
       font-weight: bold;
+      font-size: 10pt;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -500,15 +515,15 @@ export default function MeetingTimer() {
     .day-yes {
       background: #27ae60 !important;
       color: white !important;
-      padding: 3px 6px;
+      padding: 6px 8px;
       border-radius: 3px;
       font-weight: bold;
-      font-size: 9pt;
+      font-size: 10pt;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
       text-align: center;
-      min-height: 35px;
+      min-height: 45px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -518,11 +533,11 @@ export default function MeetingTimer() {
     .day-no {
       background: #95a5a6 !important;
       color: white !important;
-      padding: 3px 6px;
+      padding: 6px 8px;
       border-radius: 3px;
       font-weight: bold;
       opacity: 0.7;
-      font-size: 9pt;
+      font-size: 10pt;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -531,10 +546,10 @@ export default function MeetingTimer() {
     .frequency-badge {
       background: #f39c12 !important;
       color: white !important;
-      padding: 4px 8px;
+      padding: 6px 10px;
       border-radius: 4px;
       font-weight: bold;
-      font-size: 9pt;
+      font-size: 10pt;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -543,10 +558,10 @@ export default function MeetingTimer() {
     .weekly-minutes {
       background: #e74c3c !important;
       color: white !important;
-      padding: 4px 8px;
+      padding: 6px 10px;
       border-radius: 4px;
       font-weight: bold;
-      font-size: 9pt;
+      font-size: 10pt;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -562,18 +577,18 @@ export default function MeetingTimer() {
     }
     
     .summary-row td {
-      padding: 8px 6px !important;
-      font-size: 9pt !important;
+      padding: 12px 8px !important;
+      font-size: 11pt !important;
     }
     
     .footer-info {
       background: #34495e !important;
       color: white !important;
-      padding: 10px;
+      padding: 12px;
       border-radius: 3px;
       text-align: center;
-      font-size: 7pt;
-      margin-top: 15px;
+      font-size: 9pt;
+      margin-top: 10px;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -582,7 +597,7 @@ export default function MeetingTimer() {
 </head>
 <body>
   <h2 class="table-title">
-    <svg width="48" height="48" viewBox="0 0 148 148" style="display: inline-block; vertical-align: middle; margin-right: 8px;" xmlns="http://www.w3.org/2000/svg">
+    <svg width="60" height="60" viewBox="0 0 148 148" style="display: inline-block; vertical-align: middle; margin-right: 10px;" xmlns="http://www.w3.org/2000/svg">
       <path fill="#FEFFFE" d="M73.000000,149.000000 C48.686802,149.000000 24.873606,149.000000 1.030205,149.000000 C1.030205,99.728500 1.030205,50.456978 1.030205,1.092727 C50.229679,1.092727 99.459587,1.092727 148.844757,1.092727 C148.844757,50.332954 148.844757,99.666420 148.844757,149.000000 C123.790642,149.000000 98.645317,149.000000 73.000000,149.000000"/>
       <path fill="#0AA3A9" d="M66.077576,69.029228 C58.080856,79.589882 50.084141,90.150543 41.662998,101.271706 C30.511992,85.376930 19.711630,69.981964 8.921316,54.601326 C16.441002,48.567165 25.073895,48.218052 33.498177,53.827408 C37.630226,56.578758 41.392937,59.884796 45.813919,63.327366 C51.814465,69.509949 58.692383,70.213272 66.077576,69.029228"/>
       <path fill="#EAC448" d="M66.046532,69.015396 C58.692383,70.213272 51.814465,69.509949 46.144756,63.421082 C52.116474,59.943680 58.193146,56.645069 64.416634,53.651722 C66.124229,52.830418 68.327934,52.481773 70.200630,52.721970 C72.021149,52.955467 74.198204,53.838276 75.259438,55.189407 C75.833870,55.920750 74.692276,58.408249 73.817719,59.780312 C72.230087,62.271107 70.263710,64.520485 67.972771,67.144089"/>
@@ -593,15 +608,15 @@ export default function MeetingTimer() {
   <table class="main-table">
     <thead>
       <tr>
-        <th style="width: 28%;">🎯 Activity Name</th>
-        <th style="width: 10%;">⏱️ Avg Duration (min)</th>
-        <th style="width: 10%;">📅 SUN<br><small style="font-size: 6pt;">(time/duration)</small></th>
-        <th style="width: 10%;">📅 MON<br><small style="font-size: 6pt;">(time/duration)</small></th>
-        <th style="width: 10%;">📅 TUE<br><small style="font-size: 6pt;">(time/duration)</small></th>
-        <th style="width: 10%;">📅 WED<br><small style="font-size: 6pt;">(time/duration)</small></th>
-        <th style="width: 10%;">📅 THU<br><small style="font-size: 6pt;">(time/duration)</small></th>
-        <th style="width: 12%;">📊 Frequency (days/week)</th>
-        <th style="width: 12%;">📈 Weekly Minutes</th>
+        <th style="width: 26%;">🎯 Activity Name</th>
+        <th style="width: 11%;">⏱️ Avg Duration (min)</th>
+        <th style="width: 12%;">📅 SUN<br><small style="font-size: 8pt;">(time/duration)</small></th>
+        <th style="width: 12%;">📅 MON<br><small style="font-size: 8pt;">(time/duration)</small></th>
+        <th style="width: 12%;">📅 TUE<br><small style="font-size: 8pt;">(time/duration)</small></th>
+        <th style="width: 12%;">📅 WED<br><small style="font-size: 8pt;">(time/duration)</small></th>
+        <th style="width: 12%;">📅 THU<br><small style="font-size: 8pt;">(time/duration)</small></th>
+        <th style="width: 13%;">📊 Frequency (days/week)</th>
+        <th style="width: 13%;">📈 Weekly Minutes</th>
       </tr>
     </thead>
     <tbody>
@@ -641,10 +656,10 @@ export default function MeetingTimer() {
                   
                   return `
                   <td>
-                    <div class="day-yes" style="padding: 3px 4px;">
-                      <div style="font-weight: bold; margin-bottom: 1px;">✓</div>
-                      <div style="font-size: 6pt; line-height: 1.0;">
-                        <div style="margin-bottom: 1px;">${startTime}-${endTime}</div>
+                    <div class="day-yes" style="padding: 5px 6px;">
+                      <div style="font-weight: bold; margin-bottom: 2px; font-size: 11pt;">✓</div>
+                      <div style="font-size: 8pt; line-height: 1.1;">
+                        <div style="margin-bottom: 2px;">${startTime}-${endTime}</div>
                         <div>${duration}min</div>
                       </div>
                     </div>
