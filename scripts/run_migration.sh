@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo "==================================="
+echo "Database Migration: Add day_schedules"
+echo "==================================="
+echo ""
+echo "Please run the following SQL command in your Supabase dashboard:"
+echo ""
+echo "ALTER TABLE meeting_segments ADD COLUMN day_schedules JSONB;"
+echo ""
+echo "This will add support for day-specific scheduling in your meeting segments."
+echo ""
+echo "After running this migration, you'll be able to:"
+echo "- Set different start times for each day"
+echo "- Set different durations for each day"
+echo "- Have activities with customized schedules per day"
+echo ""
+echo "==================================="

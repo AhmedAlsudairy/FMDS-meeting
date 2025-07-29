@@ -16,6 +16,7 @@ export type Database = {
           days: string[]
           start_time: string | null
           end_time: string | null
+          day_schedules: any | null
           created_at: string
           updated_at: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           days: string[]
           start_time?: string | null
           end_time?: string | null
+          day_schedules?: any | null
           created_at?: string
           updated_at?: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           days?: string[]
           start_time?: string | null
           end_time?: string | null
+          day_schedules?: any | null
           created_at?: string
           updated_at?: string
         }

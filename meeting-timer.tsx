@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Play, Pause, Square, Edit, Plus, Download, Trash2, Loader2, RefreshCw, Menu, X } from "lucide-react"
-import { meetingSegmentService, type MeetingSegment } from "@/lib/database"
+import { meetingSegmentService, type MeetingSegment, type DaySchedule } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 
 interface TimerState {
@@ -17,11 +17,7 @@ interface TimerState {
   currentSegment: number
 }
 
-interface DayMeetingTime {
-  startTime: string
-  endTime: string
-}
-
+// TODO: Add support for multiple days
 export default function MeetingTimer() {
   const [segments, setSegments] = useState<MeetingSegment[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,7 +31,6 @@ export default function MeetingTimer() {
   const [selectedDay, setSelectedDay] = useState("Monday")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isTimeEditDialogOpen, setIsTimeEditDialogOpen] = useState(false)
   const [editingSegment, setEditingSegment] = useState<MeetingSegment | null>(null)
   const [newSegment, setNewSegment] = useState<Partial<MeetingSegment>>({
     title: "",
@@ -43,25 +38,17 @@ export default function MeetingTimer() {
     days: [],
     startTime: "7:00",
     endTime: "7:10",
+    daySchedules: [],
   })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [dayMeetingTimes, setDayMeetingTimes] = useState<Record<string, DayMeetingTime>>({
-    Sunday: { startTime: "7:10", endTime: "7:50" },
-    Monday: { startTime: "7:10", endTime: "7:50" },
-    Tuesday: { startTime: "7:10", endTime: "7:50" },
-    Wednesday: { startTime: "7:10", endTime: "7:50" },
-    Thursday: { startTime: "7:10", endTime: "7:50" },
-  })
+  const [showDaySchedules, setShowDaySchedules] = useState(false)
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const { toast } = useToast()
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
-  
-  // Get current day's meeting time
-  const currentDayMeetingTime = dayMeetingTimes[selectedDay]
-  const meetingTime = `${currentDayMeetingTime.startTime} - ${currentDayMeetingTime.endTime}`
+  const meetingTime = "7:10 AM - 7:50 AM"
 
   // Get segments for selected day
   const todaySegments = segments.filter((segment) => segment.days.includes(selectedDay))
@@ -77,6 +64,54 @@ export default function MeetingTimer() {
     const endMinutes = endDate.getMinutes().toString().padStart(2, "0")
 
     return `${endHours}:${endMinutes}`
+  }
+
+  // Helper function to get or create day schedule
+  const getOrCreateDaySchedule = (daySchedules: DaySchedule[] | undefined, day: string, defaultStartTime: string = "7:00", defaultDuration: number = 10): DaySchedule => {
+    const existing = daySchedules?.find(ds => ds.day === day)
+    if (existing) return existing
+    
+    return {
+      day,
+      startTime: defaultStartTime,
+      endTime: calculateEndTime(defaultStartTime, defaultDuration),
+      duration: defaultDuration
+    }
+  }
+
+  // Update day schedule for editing segment
+  const updateDaySchedule = (day: string, field: 'startTime' | 'duration', value: string | number) => {
+    if (!editingSegment) return
+    
+    const currentSchedules = editingSegment.daySchedules || []
+    const scheduleIndex = currentSchedules.findIndex(ds => ds.day === day)
+    
+    let updatedSchedule: DaySchedule
+    if (scheduleIndex >= 0) {
+      updatedSchedule = { ...currentSchedules[scheduleIndex] }
+    } else {
+      updatedSchedule = getOrCreateDaySchedule(currentSchedules, day, editingSegment.startTime, editingSegment.duration)
+    }
+    
+    if (field === 'startTime') {
+      updatedSchedule.startTime = value as string
+      updatedSchedule.endTime = calculateEndTime(value as string, updatedSchedule.duration)
+    } else if (field === 'duration') {
+      updatedSchedule.duration = value as number
+      updatedSchedule.endTime = calculateEndTime(updatedSchedule.startTime, value as number)
+    }
+    
+    const newSchedules = [...currentSchedules]
+    if (scheduleIndex >= 0) {
+      newSchedules[scheduleIndex] = updatedSchedule
+    } else {
+      newSchedules.push(updatedSchedule)
+    }
+    
+    setEditingSegment(prev => prev ? {
+      ...prev,
+      daySchedules: newSchedules
+    } : null)
   }
 
   // Load segments from database
@@ -176,7 +211,10 @@ export default function MeetingTimer() {
 
   const startTimer = (segmentIndex: number) => {
     const segment = todaySegments[segmentIndex]
-    const timeInSeconds = segment.duration * 60
+    // Use day-specific duration if available, otherwise use default duration
+    const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+    const duration = daySchedule ? daySchedule.duration : segment.duration
+    const timeInSeconds = duration * 60
     setTimer({
       isRunning: true,
       currentTime: timeInSeconds,
@@ -206,21 +244,6 @@ export default function MeetingTimer() {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-  }
-
-  const formatTimeForDisplay = (time: string) => {
-    const [hours, minutes] = time.split(":")
-    const hour24 = parseInt(hours)
-    const period = hour24 >= 12 ? "PM" : "AM"
-    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24
-    return `${hour12}:${minutes} ${period}`
-  }
-
-  const updateDayMeetingTime = (day: string, startTime: string, endTime: string) => {
-    setDayMeetingTimes(prev => ({
-      ...prev,
-      [day]: { startTime, endTime }
-    }))
   }
 
   const updateSegment = async (id: string, updates: Partial<MeetingSegment>) => {
@@ -305,19 +328,51 @@ export default function MeetingTimer() {
 
   const handleDayChange = (day: string, checked: boolean, isNew = false) => {
     if (isNew) {
-      setNewSegment((prev) => ({
-        ...prev,
-        days: checked ? [...(prev.days || []), day] : (prev.days || []).filter((d) => d !== day),
-      }))
+      setNewSegment((prev) => {
+        const newDays = checked ? [...(prev.days || []), day] : (prev.days || []).filter((d) => d !== day)
+        let newDaySchedules = prev.daySchedules || []
+        
+        if (checked) {
+          // Add day schedule if not exists
+          if (!newDaySchedules.find(ds => ds.day === day)) {
+            const newSchedule = getOrCreateDaySchedule(newDaySchedules, day, prev.startTime, prev.duration)
+            newDaySchedules = [...newDaySchedules, newSchedule]
+          }
+        } else {
+          // Remove day schedule
+          newDaySchedules = newDaySchedules.filter(ds => ds.day !== day)
+        }
+        
+        return {
+          ...prev,
+          days: newDays,
+          daySchedules: newDaySchedules
+        }
+      })
     } else if (editingSegment) {
-      setEditingSegment((prev) =>
-        prev
-          ? {
-              ...prev,
-              days: checked ? [...prev.days, day] : prev.days.filter((d) => d !== day),
-            }
-          : null,
-      )
+      setEditingSegment((prev) => {
+        if (!prev) return null
+        
+        const newDays = checked ? [...prev.days, day] : prev.days.filter((d) => d !== day)
+        let newDaySchedules = prev.daySchedules || []
+        
+        if (checked) {
+          // Add day schedule if not exists
+          if (!newDaySchedules.find(ds => ds.day === day)) {
+            const newSchedule = getOrCreateDaySchedule(newDaySchedules, day, prev.startTime, prev.duration)
+            newDaySchedules = [...newDaySchedules, newSchedule]
+          }
+        } else {
+          // Remove day schedule
+          newDaySchedules = newDaySchedules.filter(ds => ds.day !== day)
+        }
+        
+        return {
+          ...prev,
+          days: newDays,
+          daySchedules: newDaySchedules
+        }
+      })
     }
   }
 
@@ -576,22 +631,6 @@ export default function MeetingTimer() {
         .join("")}
       
       <!-- Summary Row -->
-      <!-- Day Duration Summary Row -->
-      <tr style="background: #e8f4f8 !important; border-top: 1px solid #bdc3c7;">
-        <td class="activity-name" style="color: #34495e; font-size: 9pt;">📈 Daily Totals</td>
-        <td style="color: #7f8c8d; font-size: 9pt;">-</td>
-        <td colspan="2" style="color: #34495e; font-weight: bold; font-size: 9pt;">MINUTES PER DAY</td>
-        ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
-          .map((day) => {
-            const dayTotal = sortedSegments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
-            return `<td style="text-align: center;"><span style="background: #3498db !important; color: white !important; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 8pt; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important;">${dayTotal}min</span></td>`
-          })
-          .join("")}
-        <td style="color: #7f8c8d; font-size: 9pt;">-</td>
-        <td style="color: #7f8c8d; font-size: 9pt;">-</td>
-      </tr>
-      
-      <!-- Summary Row -->
       <tr class="summary-row">
         <td class="activity-name" style="color: #2c3e50;">📊 TOTALS</td>
         <td><span class="duration-badge" style="background: #2c3e50;">${analytics.totalDuration}</span></td>
@@ -686,17 +725,7 @@ export default function MeetingTimer() {
                 <span>Database Connected</span>
               </div>
             </CardTitle>
-            <div className="text-center text-muted-foreground text-sm sm:text-base flex items-center justify-center gap-2">
-              <span>Daily meetings: {formatTimeForDisplay(currentDayMeetingTime.startTime)} - {formatTimeForDisplay(currentDayMeetingTime.endTime)}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsTimeEditDialogOpen(true)}
-                className="text-xs p-1 h-6 hover:bg-green-50"
-              >
-                <Edit className="w-3 h-3" />
-              </Button>
-            </div>
+            <p className="text-center text-muted-foreground text-sm sm:text-base">Daily meetings: {meetingTime}</p>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6">
             {/* Mobile-Responsive Day Selector */}
@@ -826,17 +855,6 @@ export default function MeetingTimer() {
                     </Button>
                     <Button
                       onClick={() => {
-                        setIsTimeEditDialogOpen(true)
-                        setIsMobileMenuOpen(false)
-                      }}
-                      variant="outline"
-                      className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Meeting Times
-                    </Button>
-                    <Button
-                      onClick={() => {
                         exportToPDF()
                         setIsMobileMenuOpen(false)
                       }}
@@ -871,14 +889,6 @@ export default function MeetingTimer() {
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Activity
-                </Button>
-                <Button
-                  onClick={() => setIsTimeEditDialogOpen(true)}
-                  variant="outline"
-                  className="border-blue-500 text-blue-700 hover:bg-blue-50 bg-transparent"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Meeting Times
                 </Button>
                 <Button
                   onClick={exportToPDF}
@@ -977,13 +987,21 @@ export default function MeetingTimer() {
                           <div className="flex justify-between items-start">
                             <h3 className="font-semibold text-gray-900 text-sm">{segment.title}</h3>
                             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                              {segment.duration}min
+                              {(() => {
+                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                                return daySchedule ? `${daySchedule.duration}min` : `${segment.duration}min`
+                              })()}
                             </span>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                             <div>
-                              <span className="font-medium">Time:</span> {segment.startTime} - {segment.endTime}
+                              <span className="font-medium">Time:</span> {(() => {
+                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                                return daySchedule 
+                                  ? `${daySchedule.startTime} - ${daySchedule.endTime}`
+                                  : `${segment.startTime} - ${segment.endTime}`
+                              })()}
                             </div>
                             <div>
                               <span className="font-medium">Days:</span> {segment.days.join(", ")}
@@ -1004,6 +1022,7 @@ export default function MeetingTimer() {
                               onClick={() => {
                                 setEditingSegment(segment)
                                 setIsEditDialogOpen(true)
+                                setShowDaySchedules(false)
                               }}
                               size="sm"
                               variant="outline"
@@ -1053,9 +1072,19 @@ export default function MeetingTimer() {
                       todaySegments.map((segment, index) => (
                         <tr key={segment.id} className="hover:bg-green-50 transition-colors">
                           <td className="border border-gray-300 p-3 font-medium">{segment.title}</td>
-                          <td className="border border-gray-300 p-3 text-center">{segment.duration}</td>
                           <td className="border border-gray-300 p-3 text-center">
-                            {segment.startTime} - {segment.endTime}
+                            {(() => {
+                              const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                              return daySchedule ? daySchedule.duration : segment.duration
+                            })()}
+                          </td>
+                          <td className="border border-gray-300 p-3 text-center">
+                            {(() => {
+                              const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                              return daySchedule 
+                                ? `${daySchedule.startTime} - ${daySchedule.endTime}`
+                                : `${segment.startTime} - ${segment.endTime}`
+                            })()}
                           </td>
                           <td className="border border-gray-300 p-3 text-center text-sm">{segment.days.join(", ")}</td>
                           <td className="border border-gray-300 p-3 text-center">
@@ -1072,6 +1101,7 @@ export default function MeetingTimer() {
                                 onClick={() => {
                                   setEditingSegment(segment)
                                   setIsEditDialogOpen(true)
+                                  setShowDaySchedules(false)
                                 }}
                                 size="sm"
                                 variant="outline"
@@ -1303,6 +1333,76 @@ export default function MeetingTimer() {
                       ))}
                     </div>
                   </div>
+                  
+                  {/* Day-Specific Schedule Settings */}
+                  {editingSegment.days.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Day-Specific Schedules:</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowDaySchedules(!showDaySchedules)}
+                          className="text-xs"
+                        >
+                          {showDaySchedules ? "Hide" : "Show"} Individual Times
+                        </Button>
+                      </div>
+                      
+                      {showDaySchedules && (
+                        <div className="space-y-3 p-4 bg-gray-50 rounded-lg border">
+                          <p className="text-xs text-gray-600 mb-3">
+                            Set different start times and durations for each selected day
+                          </p>
+                          {editingSegment.days.map((day) => {
+                            const daySchedule = getOrCreateDaySchedule(editingSegment.daySchedules, day, editingSegment.startTime, editingSegment.duration)
+                            return (
+                              <div key={day} className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 bg-white rounded border">
+                                <div>
+                                  <Label className="text-xs font-medium text-gray-700">
+                                    {day}
+                                  </Label>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-gray-600">Start Time:</Label>
+                                  <Input
+                                    type="time"
+                                    value={daySchedule.startTime}
+                                    onChange={(e) => updateDaySchedule(day, 'startTime', e.target.value)}
+                                    disabled={saving}
+                                    className="mt-1 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-gray-600">Duration (min):</Label>
+                                  <Input
+                                    type="number"
+                                    value={daySchedule.duration}
+                                    onChange={(e) => updateDaySchedule(day, 'duration', Number.parseInt(e.target.value) || 0)}
+                                    disabled={saving}
+                                    className="mt-1 text-xs"
+                                    min="1"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-gray-600">End Time:</Label>
+                                  <Input
+                                    type="time"
+                                    value={daySchedule.endTime}
+                                    disabled={true}
+                                    className="mt-1 text-xs bg-gray-100"
+                                    title="Auto-calculated based on start time + duration"
+                                  />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <div className="flex flex-col sm:flex-row gap-2 pt-4">
                     <Button
                       onClick={() => {
@@ -1310,6 +1410,7 @@ export default function MeetingTimer() {
                           updateSegment(editingSegment.id, editingSegment)
                           setIsEditDialogOpen(false)
                           setEditingSegment(null)
+                          setShowDaySchedules(false)
                         }
                       }}
                       className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
@@ -1323,72 +1424,9 @@ export default function MeetingTimer() {
                       onClick={() => {
                         setIsEditDialogOpen(false)
                         setEditingSegment(null)
+                        setShowDaySchedules(false)
                       }}
                       disabled={saving}
-                      className="w-full sm:w-auto"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Time Edit Dialog */}
-            {isTimeEditDialogOpen && (
-              <Card className="border-2 border-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-blue-800 text-lg sm:text-xl">Edit Meeting Times by Day</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    {days.map((day) => (
-                      <div key={day} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-center p-3 border border-gray-200 rounded-lg">
-                        <div className="sm:col-span-1">
-                          <Label className="text-sm font-medium">{day}:</Label>
-                        </div>
-                        <div className="sm:col-span-1">
-                          <Label htmlFor={`${day}-start`} className="text-xs text-gray-600">Start Time:</Label>
-                          <Input
-                            id={`${day}-start`}
-                            type="time"
-                            value={dayMeetingTimes[day].startTime}
-                            onChange={(e) => updateDayMeetingTime(day, e.target.value, dayMeetingTimes[day].endTime)}
-                            className="mt-1"
-                          />
-                        </div>
-                        <div className="sm:col-span-1">
-                          <Label htmlFor={`${day}-end`} className="text-xs text-gray-600">End Time:</Label>
-                          <Input
-                            id={`${day}-end`}
-                            type="time"
-                            value={dayMeetingTimes[day].endTime}
-                            onChange={(e) => updateDayMeetingTime(day, dayMeetingTimes[day].startTime, e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                        <div className="sm:col-span-1 text-xs text-gray-500">
-                          {formatTimeForDisplay(dayMeetingTimes[day].startTime)} - {formatTimeForDisplay(dayMeetingTimes[day].endTime)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                    <Button
-                      onClick={() => {
-                        setIsTimeEditDialogOpen(false)
-                        toast({
-                          title: "Success",
-                          description: "Meeting times updated successfully.",
-                        })
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
-                    >
-                      Save Meeting Times
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsTimeEditDialogOpen(false)}
                       className="w-full sm:w-auto"
                     >
                       Cancel

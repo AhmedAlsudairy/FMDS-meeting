@@ -1,5 +1,12 @@
 import { supabase } from "./supabase"
 
+export interface DaySchedule {
+  day: string
+  startTime: string
+  endTime: string
+  duration: number
+}
+
 export interface MeetingSegment {
   id: string
   title: string
@@ -7,6 +14,7 @@ export interface MeetingSegment {
   days: string[]
   startTime?: string
   endTime?: string
+  daySchedules?: DaySchedule[] // New field for day-specific schedules
   created_at?: string
   updated_at?: string
 }
@@ -37,13 +45,14 @@ export const meetingSegmentService = {
       throw new Error(`Failed to fetch meeting segments: ${error.message}`)
     }
 
-    return data.map((segment) => ({
+    return data.map((segment: any) => ({
       id: segment.id,
       title: segment.title,
       duration: segment.duration,
       days: segment.days,
       startTime: segment.start_time,
       endTime: segment.end_time,
+      daySchedules: segment.day_schedules ? JSON.parse(segment.day_schedules) : undefined,
       created_at: segment.created_at,
       updated_at: segment.updated_at,
     }))
@@ -58,6 +67,7 @@ export const meetingSegmentService = {
         days: segment.days,
         start_time: segment.startTime,
         end_time: segment.endTime,
+        day_schedules: segment.daySchedules ? JSON.stringify(segment.daySchedules) : null,
       })
       .select()
       .single()
@@ -73,6 +83,7 @@ export const meetingSegmentService = {
       days: data.days,
       startTime: data.start_time,
       endTime: data.end_time,
+      daySchedules: data.day_schedules ? JSON.parse(data.day_schedules) : undefined,
       created_at: data.created_at,
       updated_at: data.updated_at,
     }
@@ -87,6 +98,7 @@ export const meetingSegmentService = {
         ...(updates.days && { days: updates.days }),
         ...(updates.startTime && { start_time: updates.startTime }),
         ...(updates.endTime && { end_time: updates.endTime }),
+        ...(updates.daySchedules !== undefined && { day_schedules: updates.daySchedules ? JSON.stringify(updates.daySchedules) : null }),
       })
       .eq("id", id)
       .select()
@@ -103,6 +115,7 @@ export const meetingSegmentService = {
       days: data.days,
       startTime: data.start_time,
       endTime: data.end_time,
+      daySchedules: data.day_schedules ? JSON.parse(data.day_schedules) : undefined,
       created_at: data.created_at,
       updated_at: data.updated_at,
     }
