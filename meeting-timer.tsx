@@ -597,11 +597,11 @@ export default function MeetingTimer() {
         <th style="width: 10%;">⏱️ Duration (min)</th>
         <th style="width: 12%;">🕐 Start Time</th>
         <th style="width: 12%;">🕐 End Time</th>
-        <th style="width: 8%;">📅 SUN<br><small style="font-size: 7pt;">(time/dur)</small></th>
-        <th style="width: 8%;">📅 MON<br><small style="font-size: 7pt;">(time/dur)</small></th>
-        <th style="width: 8%;">📅 TUE<br><small style="font-size: 7pt;">(time/dur)</small></th>
-        <th style="width: 8%;">📅 WED<br><small style="font-size: 7pt;">(time/dur)</small></th>
-        <th style="width: 8%;">📅 THU<br><small style="font-size: 7pt;">(time/dur)</small></th>
+        <th style="width: 8%;">📅 SUN<br><small style="font-size: 7pt;">(duration)</small></th>
+        <th style="width: 8%;">📅 MON<br><small style="font-size: 7pt;">(duration)</small></th>
+        <th style="width: 8%;">📅 TUE<br><small style="font-size: 7pt;">(duration)</small></th>
+        <th style="width: 8%;">📅 WED<br><small style="font-size: 7pt;">(duration)</small></th>
+        <th style="width: 8%;">📅 THU<br><small style="font-size: 7pt;">(duration)</small></th>
         <th style="width: 12%;">📊 Frequency (days/week)</th>
         <th style="width: 12%;">📈 Weekly Minutes</th>
       </tr>
@@ -639,7 +639,6 @@ export default function MeetingTimer() {
                     <div class="day-yes" style="padding: 4px 6px;">
                       <div style="font-weight: bold; margin-bottom: 2px;">✓</div>
                       <div style="font-size: 8pt; line-height: 1.1;">
-                        <div>${startTime || 'N/A'}</div>
                         <div>${duration}min</div>
                       </div>
                     </div>
