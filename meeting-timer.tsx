@@ -1051,433 +1051,28 @@ export default function MeetingTimer() {
             <p className="text-center text-muted-foreground text-sm sm:text-base">Daily meetings: {meetingTime}</p>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6">
-            {/* Mobile-Responsive Day Selector */}
-            <div>
-              <Label className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4 block">
-                Select Meeting Day
-              </Label>
-
-              {/* Mobile: Dropdown selector */}
-              <div className="block sm:hidden">
-                <select
-                  value={selectedDay}
-                  onChange={(e) => setSelectedDay(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium"
-                >
-                  {days.map((day) => {
-                    const todaySegmentsCount = segments.filter((segment) => segment.days.includes(day)).length
-                    const totalDuration = segments
-                      .filter((segment) => segment.days.includes(day))
-                      .reduce((sum, seg) => sum + seg.duration, 0)
-                    return (
-                      <option key={day} value={day}>
-                        {day} - {todaySegmentsCount} activities ({totalDuration}min)
-                      </option>
-                    )
-                  })}
-                </select>
-              </div>
-
-              {/* Desktop: Calendar-style selector */}
-              <div className="hidden sm:flex justify-center">
-                <div className="inline-flex bg-white rounded-xl shadow-lg border border-gray-200 p-2 gap-1">
-                  {days.map((day, index) => {
-                    const isSelected = selectedDay === day
-                    const todaySegmentsCount = segments.filter((segment) => segment.days.includes(day)).length
-                    const totalDuration = segments
-                      .filter((segment) => segment.days.includes(day))
-                      .reduce((sum, seg) => sum + seg.duration, 0)
-
-                    return (
-                      <button
-                        key={day}
-                        onClick={() => setSelectedDay(day)}
-                        className={`
-                          relative flex flex-col items-center justify-center px-3 lg:px-4 py-3 rounded-lg transition-all duration-200 min-w-[80px] lg:min-w-[100px]
-                          ${
-                            isSelected
-                              ? "bg-green-500 text-white shadow-md transform scale-105"
-                              : "bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-700 hover:shadow-sm"
-                          }
-                        `}
-                      >
-                        <div
-                          className={`text-xs font-medium uppercase tracking-wide mb-1 ${isSelected ? "text-green-100" : "text-gray-500"}`}
-                        >
-                          {day.slice(0, 3)}
-                        </div>
-                        <div className={`text-lg font-bold mb-1 ${isSelected ? "text-white" : "text-gray-800"}`}>
-                          {index + 1}
-                        </div>
-                        {todaySegmentsCount > 0 && (
-                          <div className="flex flex-col items-center">
-                            <div
-                              className={`w-2 h-2 rounded-full mb-1 ${isSelected ? "bg-white" : "bg-green-400"}`}
-                            ></div>
-                            <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-500"}`}>
-                              {todaySegmentsCount} activities
-                            </div>
-                            <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-500"}`}>
-                              {totalDuration}min
-                            </div>
-                          </div>
-                        )}
-                        {todaySegmentsCount === 0 && (
-                          <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-400"}`}>
-                            No meetings
-                          </div>
-                        )}
-                        {isSelected && (
-                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-                            <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-500"></div>
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Selected day info */}
-              <div className="text-center mt-4">
-                <div className="inline-flex items-center gap-2 bg-green-50 px-3 sm:px-4 py-2 rounded-full border border-green-200">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-green-700 font-medium text-sm sm:text-base">
-                    {selectedDay} Schedule - {todaySegments.length} activities (
-                    {todaySegments.reduce((sum, seg) => sum + seg.duration, 0)} minutes total)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile-Responsive Action buttons */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              {/* Mobile: Hamburger menu */}
-              <div className="block sm:hidden w-full">
-                <Button
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  variant="outline"
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-                  {isMobileMenuOpen ? "Close Menu" : "Actions Menu"}
-                </Button>
-
-                {isMobileMenuOpen && (
-                  <div className="mt-3 space-y-2 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-                    <Button
-                      onClick={() => {
-                        setIsAddDialogOpen(true)
-                        setIsMobileMenuOpen(false)
-                      }}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      disabled={saving}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Activity
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        exportToPDF()
-                        setIsMobileMenuOpen(false)
-                      }}
-                      variant="outline"
-                      className="w-full border-green-500 text-green-700 hover:bg-green-50"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Print PDF
-                    </Button>
-                    {/* <Button
-                      onClick={() => {
-                        downloadPDF()
-                        setIsMobileMenuOpen(false)
-                      }}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download PDF
-                    </Button> */}
-                    <Button
-                      onClick={() => {
-                        loadSegments()
-                        setIsMobileMenuOpen(false)
-                      }}
-                      variant="outline"
-                      className="w-full border-gray-500 text-gray-700 hover:bg-gray-50"
-                      disabled={loading}
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                      Refresh
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Desktop: Horizontal buttons */}
-              <div className="hidden sm:flex gap-2 flex-wrap">
-                <Button
-                  onClick={() => setIsAddDialogOpen(true)}
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={saving}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Activity
-                </Button>
-                <Button
-                  onClick={exportToPDF}
-                  variant="outline"
-                  className="border-green-500 text-green-700 hover:bg-green-50 bg-transparent"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Print PDF
-                </Button>
-                {/* <Button
-                  onClick={downloadPDF}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download PDF
-                </Button> */}
-                <Button
-                  onClick={loadSegments}
-                  variant="outline"
-                  className="border-gray-500 text-gray-700 hover:bg-gray-50 bg-transparent"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
-              </div>
-
-              {/* Quick stats - responsive */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  <span>Activities: {segments.length}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                  <span>
-                    Active Days: {days.filter((day) => segments.some((seg) => seg.days.includes(day))).length}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>DB Connected</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Current Timer Display - Mobile Responsive */}
-            {timer.totalTime > 0 && (
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="pt-4 sm:pt-6">
-                  <div className="text-center space-y-3 sm:space-y-4">
-                    <h3 className="text-lg sm:text-xl font-semibold text-green-800 px-2">
-                      {todaySegments[timer.currentSegment]?.title}
-                    </h3>
-                    <div className="text-3xl sm:text-4xl font-mono font-bold text-green-700">
-                      {formatTime(timer.currentTime)}
-                    </div>
-                    <div className="w-full bg-green-100 rounded-full h-3 sm:h-4">
-                      <div
-                        className="bg-green-500 h-3 sm:h-4 rounded-full transition-all duration-1000 ease-linear"
-                        style={{ width: `${progress}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row justify-center gap-2">
-                      {timer.isRunning ? (
-                        <Button
-                          onClick={pauseTimer}
-                          variant="outline"
-                          className="border-green-500 text-green-700 hover:bg-green-50 bg-transparent w-full sm:w-auto"
-                        >
-                          <Pause className="w-4 h-4 mr-2" />
-                          Pause
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={resumeTimer}
-                          disabled={timer.currentTime === 0}
-                          className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          Resume
-                        </Button>
-                      )}
-                      <Button onClick={stopTimer} variant="destructive" className="w-full sm:w-auto">
-                        <Square className="w-4 h-4 mr-2" />
-                        Stop
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Mobile-Responsive Schedule Table */}
-            <div className="space-y-4">
-              {/* Mobile: Card layout */}
-              <div className="block sm:hidden space-y-3">
-                {todaySegments.length > 0 ? (
-                  todaySegments.map((segment, index) => (
-                    <Card key={segment.id} className="border border-gray-200 hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-semibold text-gray-900 text-sm">{segment.title}</h3>
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                              {(() => {
-                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
-                                return daySchedule ? `${daySchedule.duration}min` : `${segment.duration}min`
-                              })()}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                            <div>
-                              <span className="font-medium">Time:</span> {(() => {
-                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
-                                return daySchedule 
-                                  ? `${daySchedule.startTime} - ${daySchedule.endTime}`
-                                  : `${segment.startTime} - ${segment.endTime}`
-                              })()}
-                            </div>
-                            <div>
-                              <span className="font-medium">Days:</span> {segment.days.join(", ")}
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 pt-2">
-                            <Button
-                              onClick={() => startTimer(index)}
-                              size="sm"
-                              disabled={timer.isRunning || saving}
-                              className="bg-green-600 hover:bg-green-700 flex-1"
-                            >
-                              <Play className="w-3 h-3 mr-1" />
-                              Start
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                setEditingSegment(segment)
-                                setIsEditDialogOpen(true)
-                                setShowDaySchedules(false)
-                              }}
-                              size="sm"
-                              variant="outline"
-                              disabled={saving}
-                              className="flex-1"
-                            >
-                              <Edit className="w-3 h-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              onClick={() => deleteSegment(segment.id)}
-                              size="sm"
-                              variant="destructive"
-                              disabled={saving}
-                              className="px-3"
-                            >
-                              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <Card className="border border-gray-200">
-                    <CardContent className="p-6 text-center text-gray-500">
-                      <p>No activities scheduled for {selectedDay}</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-
-              {/* Desktop: Table layout */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden">
-                  <thead>
-                    <tr className="bg-green-100">
-                      <th className="border border-gray-300 p-3 text-left text-sm font-semibold">Activity</th>
-                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Duration (min)</th>
-                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Time Range</th>
-                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Days</th>
-                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {todaySegments.length > 0 ? (
-                      todaySegments.map((segment, index) => (
-                        <tr key={segment.id} className="hover:bg-green-50 transition-colors">
-                          <td className="border border-gray-300 p-3 font-medium">{segment.title}</td>
-                          <td className="border border-gray-300 p-3 text-center">
-                            {(() => {
-                              const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
-                              return daySchedule ? daySchedule.duration : segment.duration
-                            })()}
-                          </td>
-                          <td className="border border-gray-300 p-3 text-center">
-                            {(() => {
-                              const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
-                              return daySchedule 
-                                ? `${daySchedule.startTime} - ${daySchedule.endTime}`
-                                : `${segment.startTime} - ${segment.endTime}`
-                            })()}
-                          </td>
-                          <td className="border border-gray-300 p-3 text-center text-sm">{segment.days.join(", ")}</td>
-                          <td className="border border-gray-300 p-3 text-center">
-                            <div className="flex justify-center gap-2">
-                              <Button
-                                onClick={() => startTimer(index)}
-                                size="sm"
-                                disabled={timer.isRunning || saving}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <Play className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                onClick={() => {
-                                  setEditingSegment(segment)
-                                  setIsEditDialogOpen(true)
-                                  setShowDaySchedules(false)
-                                }}
-                                size="sm"
-                                variant="outline"
-                                disabled={saving}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                onClick={() => deleteSegment(segment.id)}
-                                size="sm"
-                                variant="destructive"
-                                disabled={saving}
-                              >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="border border-gray-300 p-6 text-center text-gray-500">
-                          No activities scheduled for {selectedDay}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Mobile-Responsive Add New Segment Form */}
+            {/* Add New Activity Form - Top Position */}
             {isAddDialogOpen && (
-              <Card className="border-2 border-green-200">
-                <CardHeader>
+              <Card className="border-2 border-green-200 shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <CardTitle className="text-green-800 text-lg sm:text-xl">Add New Activity</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsAddDialogOpen(false)
+                      setNewSegment({
+                        title: "",
+                        duration: 10,
+                        days: [],
+                        startTime: "7:00",
+                        endTime: "7:10",
+                      })
+                    }}
+                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1585,13 +1180,25 @@ export default function MeetingTimer() {
               </Card>
             )}
 
-            {/* Mobile-Responsive Edit Form */}
+            {/* Edit Activity Form - Top Position */}
             {isEditDialogOpen && editingSegment && (
-              <Card className="border-2 border-green-200">
-                <CardHeader>
+              <Card className="border-2 border-green-200 shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <CardTitle className="text-green-800 text-lg sm:text-xl">
                     Edit Activity: {editingSegment.title}
                   </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditDialogOpen(false)
+                      setEditingSegment(null)
+                      setShowDaySchedules(false)
+                    }}
+                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1775,6 +1382,437 @@ export default function MeetingTimer() {
                 </CardContent>
               </Card>
             )}
+            {/* Mobile-Responsive Day Selector */}
+            <div>
+              <Label className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4 block">
+                Select Meeting Day
+              </Label>
+
+              {/* Mobile: Dropdown selector */}
+              <div className="block sm:hidden">
+                <select
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium"
+                >
+                  {days.map((day) => {
+                    const todaySegmentsCount = segments.filter((segment) => segment.days.includes(day)).length
+                    const totalDuration = segments
+                      .filter((segment) => segment.days.includes(day))
+                      .reduce((sum, seg) => sum + seg.duration, 0)
+                    return (
+                      <option key={day} value={day}>
+                        {day} - {todaySegmentsCount} activities ({totalDuration}min)
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+
+              {/* Desktop: Calendar-style selector */}
+              <div className="hidden sm:flex justify-center">
+                <div className="inline-flex bg-white rounded-xl shadow-lg border border-gray-200 p-2 gap-1">
+                  {days.map((day, index) => {
+                    const isSelected = selectedDay === day
+                    const todaySegmentsCount = segments.filter((segment) => segment.days.includes(day)).length
+                    const totalDuration = segments
+                      .filter((segment) => segment.days.includes(day))
+                      .reduce((sum, seg) => sum + seg.duration, 0)
+
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDay(day)}
+                        className={`
+                          relative flex flex-col items-center justify-center px-3 lg:px-4 py-3 rounded-lg transition-all duration-200 min-w-[80px] lg:min-w-[100px]
+                          ${
+                            isSelected
+                              ? "bg-green-500 text-white shadow-md transform scale-105"
+                              : "bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-700 hover:shadow-sm"
+                          }
+                        `}
+                      >
+                        <div
+                          className={`text-xs font-medium uppercase tracking-wide mb-1 ${isSelected ? "text-green-100" : "text-gray-500"}`}
+                        >
+                          {day.slice(0, 3)}
+                        </div>
+                        <div className={`text-lg font-bold mb-1 ${isSelected ? "text-white" : "text-gray-800"}`}>
+                          {index + 1}
+                        </div>
+                        {todaySegmentsCount > 0 && (
+                          <div className="flex flex-col items-center">
+                            <div
+                              className={`w-2 h-2 rounded-full mb-1 ${isSelected ? "bg-white" : "bg-green-400"}`}
+                            ></div>
+                            <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-500"}`}>
+                              {todaySegmentsCount} activities
+                            </div>
+                            <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-500"}`}>
+                              {totalDuration}min
+                            </div>
+                          </div>
+                        )}
+                        {todaySegmentsCount === 0 && (
+                          <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-400"}`}>
+                            No meetings
+                          </div>
+                        )}
+                        {isSelected && (
+                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                            <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-500"></div>
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Selected day info */}
+              <div className="text-center mt-4">
+                <div className="inline-flex items-center gap-2 bg-green-50 px-3 sm:px-4 py-2 rounded-full border border-green-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-green-700 font-medium text-sm sm:text-base">
+                    {selectedDay} Schedule - {todaySegments.length} activities (
+                    {todaySegments.reduce((sum, seg) => sum + seg.duration, 0)} minutes total)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile-Responsive Action buttons */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {/* Mobile: Hamburger menu */}
+              <div className="block sm:hidden w-full">
+                <Button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                  {isMobileMenuOpen ? "Close Menu" : "Actions Menu"}
+                </Button>
+
+                {isMobileMenuOpen && (
+                  <div className="mt-3 space-y-2 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+                    <Button
+                      onClick={() => {
+                        setIsAddDialogOpen(true)
+                        setIsEditDialogOpen(false)
+                        setEditingSegment(null)
+                        setShowDaySchedules(false)
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      disabled={saving}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Activity
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        exportToPDF()
+                        setIsMobileMenuOpen(false)
+                      }}
+                      variant="outline"
+                      className="w-full border-green-500 text-green-700 hover:bg-green-50"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Print PDF
+                    </Button>
+                    {/* <Button
+                      onClick={() => {
+                        downloadPDF()
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </Button> */}
+                    <Button
+                      onClick={() => {
+                        loadSegments()
+                        setIsMobileMenuOpen(false)
+                      }}
+                      variant="outline"
+                      className="w-full border-gray-500 text-gray-700 hover:bg-gray-50"
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop: Horizontal buttons */}
+              <div className="hidden sm:flex gap-2 flex-wrap">
+                <Button
+                  onClick={() => {
+                    setIsAddDialogOpen(true)
+                    setIsEditDialogOpen(false)
+                    setEditingSegment(null)
+                    setShowDaySchedules(false)
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={saving}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Activity
+                </Button>
+                <Button
+                  onClick={exportToPDF}
+                  variant="outline"
+                  className="border-green-500 text-green-700 hover:bg-green-50 bg-transparent"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Print PDF
+                </Button>
+                {/* <Button
+                  onClick={downloadPDF}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download PDF
+                </Button> */}
+                <Button
+                  onClick={loadSegments}
+                  variant="outline"
+                  className="border-gray-500 text-gray-700 hover:bg-gray-50 bg-transparent"
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
+
+              {/* Quick stats - responsive */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span>Activities: {segments.length}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                  <span>
+                    Active Days: {days.filter((day) => segments.some((seg) => seg.days.includes(day))).length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>DB Connected</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Current Timer Display - Mobile Responsive */}
+            {timer.totalTime > 0 && (
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="pt-4 sm:pt-6">
+                  <div className="text-center space-y-3 sm:space-y-4">
+                    <h3 className="text-lg sm:text-xl font-semibold text-green-800 px-2">
+                      {todaySegments[timer.currentSegment]?.title}
+                    </h3>
+                    <div className="text-3xl sm:text-4xl font-mono font-bold text-green-700">
+                      {formatTime(timer.currentTime)}
+                    </div>
+                    <div className="w-full bg-green-100 rounded-full h-3 sm:h-4">
+                      <div
+                        className="bg-green-500 h-3 sm:h-4 rounded-full transition-all duration-1000 ease-linear"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-center gap-2">
+                      {timer.isRunning ? (
+                        <Button
+                          onClick={pauseTimer}
+                          variant="outline"
+                          className="border-green-500 text-green-700 hover:bg-green-50 bg-transparent w-full sm:w-auto"
+                        >
+                          <Pause className="w-4 h-4 mr-2" />
+                          Pause
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={resumeTimer}
+                          disabled={timer.currentTime === 0}
+                          className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Resume
+                        </Button>
+                      )}
+                      <Button onClick={stopTimer} variant="destructive" className="w-full sm:w-auto">
+                        <Square className="w-4 h-4 mr-2" />
+                        Stop
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mobile-Responsive Schedule Table */}
+            <div className="space-y-4">
+              {/* Mobile: Card layout */}
+              <div className="block sm:hidden space-y-3">
+                {todaySegments.length > 0 ? (
+                  todaySegments.map((segment, index) => (
+                    <Card key={segment.id} className="border border-gray-200 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <h3 className="font-semibold text-gray-900 text-sm">{segment.title}</h3>
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                              {(() => {
+                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                                return daySchedule ? `${daySchedule.duration}min` : `${segment.duration}min`
+                              })()}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                            <div>
+                              <span className="font-medium">Time:</span> {(() => {
+                                const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                                return daySchedule 
+                                  ? `${daySchedule.startTime} - ${daySchedule.endTime}`
+                                  : `${segment.startTime} - ${segment.endTime}`
+                              })()}
+                            </div>
+                            <div>
+                              <span className="font-medium">Days:</span> {segment.days.join(", ")}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              onClick={() => startTimer(index)}
+                              size="sm"
+                              disabled={timer.isRunning || saving}
+                              className="bg-green-600 hover:bg-green-700 flex-1"
+                            >
+                              <Play className="w-3 h-3 mr-1" />
+                              Start
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setEditingSegment(segment)
+                                setIsEditDialogOpen(true)
+                                setIsAddDialogOpen(false)
+                                setShowDaySchedules(false)
+                              }}
+                              size="sm"
+                              variant="outline"
+                              disabled={saving}
+                              className="flex-1"
+                            >
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              onClick={() => deleteSegment(segment.id)}
+                              size="sm"
+                              variant="destructive"
+                              disabled={saving}
+                              className="px-3"
+                            >
+                              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <Card className="border border-gray-200">
+                    <CardContent className="p-6 text-center text-gray-500">
+                      <p>No activities scheduled for {selectedDay}</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Desktop: Table layout */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden">
+                  <thead>
+                    <tr className="bg-green-100">
+                      <th className="border border-gray-300 p-3 text-left text-sm font-semibold">Activity</th>
+                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Duration (min)</th>
+                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Time Range</th>
+                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Days</th>
+                      <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {todaySegments.length > 0 ? (
+                      todaySegments.map((segment, index) => (
+                        <tr key={segment.id} className="hover:bg-green-50 transition-colors">
+                          <td className="border border-gray-300 p-3 font-medium">{segment.title}</td>
+                          <td className="border border-gray-300 p-3 text-center">
+                            {(() => {
+                              const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                              return daySchedule ? daySchedule.duration : segment.duration
+                            })()}
+                          </td>
+                          <td className="border border-gray-300 p-3 text-center">
+                            {(() => {
+                              const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                              return daySchedule 
+                                ? `${daySchedule.startTime} - ${daySchedule.endTime}`
+                                : `${segment.startTime} - ${segment.endTime}`
+                            })()}
+                          </td>
+                          <td className="border border-gray-300 p-3 text-center text-sm">{segment.days.join(", ")}</td>
+                          <td className="border border-gray-300 p-3 text-center">
+                            <div className="flex justify-center gap-2">
+                              <Button
+                                onClick={() => startTimer(index)}
+                                size="sm"
+                                disabled={timer.isRunning || saving}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Play className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setEditingSegment(segment)
+                                  setIsEditDialogOpen(true)
+                                  setIsAddDialogOpen(false)
+                                  setShowDaySchedules(false)
+                                }}
+                                size="sm"
+                                variant="outline"
+                                disabled={saving}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => deleteSegment(segment.id)}
+                                size="sm"
+                                variant="destructive"
+                                disabled={saving}
+                              >
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="border border-gray-300 p-6 text-center text-gray-500">
+                          No activities scheduled for {selectedDay}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
