@@ -50,6 +50,19 @@ export default function MeetingTimer() {
   // Get segments for selected day
   const todaySegments = segments.filter((segment) => segment.days.includes(selectedDay))
 
+  // Calculate end time based on start time and duration
+  const calculateEndTime = (startTime: string, duration: number): string => {
+    const [hours, minutes] = startTime.split(":").map(Number)
+    const startDate = new Date()
+    startDate.setHours(hours, minutes, 0, 0)
+
+    const endDate = new Date(startDate.getTime() + duration * 60000)
+    const endHours = endDate.getHours().toString().padStart(2, "0")
+    const endMinutes = endDate.getMinutes().toString().padStart(2, "0")
+
+    return `${endHours}:${endMinutes}`
+  }
+
   // Load segments from database
   const loadSegments = async () => {
     try {
@@ -72,6 +85,22 @@ export default function MeetingTimer() {
   useEffect(() => {
     loadSegments()
   }, [])
+
+  // Auto-calculate end time when start time or duration changes for new segment
+  useEffect(() => {
+    if (newSegment.startTime && newSegment.duration) {
+      const endTime = calculateEndTime(newSegment.startTime, newSegment.duration)
+      setNewSegment((prev) => ({ ...prev, endTime }))
+    }
+  }, [newSegment.startTime, newSegment.duration])
+
+  // Auto-calculate end time when start time or duration changes for editing segment
+  useEffect(() => {
+    if (editingSegment?.startTime && editingSegment?.duration) {
+      const endTime = calculateEndTime(editingSegment.startTime, editingSegment.duration)
+      setEditingSegment((prev) => (prev ? { ...prev, endTime } : null))
+    }
+  }, [editingSegment?.startTime, editingSegment?.duration])
 
   // Create beep sound using Web Audio API
   const playBeep = () => {
@@ -265,600 +294,252 @@ export default function MeetingTimer() {
     try {
       const analytics = await meetingSegmentService.getAnalytics()
 
-      // Create A3-optimized single table HTML content for PDF with larger sizing
+      // Create HTML content for PDF
       const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
-  <title>FMDS Meeting Schedule - A3 Table</title>
+  <title>FMDS Meeting Schedule</title>
   <meta charset="UTF-8">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
     
-    @page {
-      size: A3 landscape;
-      margin: 8mm;
-    }
-    
-    @media print {
-      @page {
-        size: A3 landscape;
-        margin: 8mm;
-      }
-      
-      body {
-        font-size: 14pt;
-        line-height: 1.4;
-        color: #000 !important;
-        background: white !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      
-      .main-table {
-        font-size: 13pt;
-      }
-      
-      .header-section {
-        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%) !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-    }
-    
     body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      line-height: 1.5;
-      color: #1a202c;
-      background: #f8fafc;
-      font-size: 16pt;
-    }
-    
-    .document-container {
-      width: 100%;
-      height: 100vh;
-      margin: 0;
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+      color: #000;
       background: white;
-      padding: 8mm;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .table-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      margin-bottom: 0;
+      font-size: 12pt;
+      padding: 20px;
     }
     
     .table-title {
-      font-size: 2em;
+      font-size: 18pt;
       color: #2c3e50;
       margin-bottom: 20px;
       text-align: center;
-      font-weight: 700;
-      border-bottom: 4px solid #3498db;
-      padding-bottom: 15px;
+      font-weight: bold;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
     }
     
     .main-table { 
       width: 100%;
       border-collapse: collapse;
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-      font-size: 14pt;
-      flex: 1;
-      height: 100%;
+      margin-bottom: 20px;
     }
     
     .main-table th { 
-      background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+      background: #2c3e50;
       color: white;
-      padding: 18px 12px;
+      padding: 12px 8px;
       text-align: center;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      font-size: 12pt;
-      border: 2px solid #34495e;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      vertical-align: middle;
+      font-weight: bold;
+      border: 1px solid #34495e;
+      font-size: 10pt;
     }
     
     .main-table td { 
-      padding: 16px 12px;
-      border: 2px solid #e2e8f0;
-      vertical-align: middle;
+      padding: 10px 8px;
+      border: 1px solid #ddd;
       text-align: center;
-      font-size: 12pt;
-      line-height: 1.4;
+      font-size: 10pt;
     }
     
     .main-table tr:nth-child(even) {
-      background-color: #f8fafc;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      background-color: #f8f9fa;
     }
     
     .activity-name {
-      font-weight: 700;
+      font-weight: bold;
       color: #2c3e50;
       text-align: left;
-      font-size: 13pt;
-      padding-left: 16px !important;
+      padding-left: 12px !important;
     }
     
     .duration-badge {
-      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      background: #3498db;
       color: white;
-      padding: 8px 14px;
-      border-radius: 16px;
-      font-weight: 700;
-      display: inline-block;
-      min-width: 60px;
-      font-size: 11pt;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
     }
     
     .time-badge {
-      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+      background: #9b59b6;
       color: white;
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-family: 'Courier New', monospace;
-      font-weight: 700;
-      font-size: 10pt;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    .day-cell {
-      font-size: 10pt;
-      line-height: 1.3;
-      padding: 8px !important;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: bold;
+      font-size: 9pt;
     }
     
     .day-yes {
-      background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+      background: #27ae60;
       color: white;
-      padding: 6px 8px;
-      border-radius: 6px;
-      margin: 2px;
-      display: inline-block;
-      font-weight: 700;
-      font-size: 11pt;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 9pt;
     }
     
     .day-no {
-      background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+      background: #95a5a6;
       color: white;
-      padding: 6px 8px;
-      border-radius: 6px;
-      margin: 2px;
-      display: inline-block;
-      font-weight: 700;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-weight: bold;
       opacity: 0.7;
-      font-size: 11pt;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      font-size: 9pt;
     }
     
     .frequency-badge {
-      background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+      background: #f39c12;
       color: white;
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 10pt;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 9pt;
     }
     
     .weekly-minutes {
-      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+      background: #e74c3c;
       color: white;
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 10pt;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 9pt;
     }
     
     .summary-row {
-      background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%) !important;
+      background: #ecf0f1 !important;
       font-weight: bold !important;
-      border-top: 4px solid #2c3e50 !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      border-top: 2px solid #2c3e50 !important;
     }
     
     .summary-row td {
-      padding: 20px 12px !important;
-      font-size: 13pt !important;
+      padding: 12px 8px !important;
+      font-size: 11pt !important;
     }
     
     .footer-info {
-      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      background: #34495e;
       color: white;
-      padding: 18px;
-      border-radius: 10px;
+      padding: 15px;
+      border-radius: 5px;
       text-align: center;
-      font-size: 10pt;
+      font-size: 9pt;
       margin-top: 20px;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      flex-shrink: 0;
     }
   </style>
 </head>
 <body>
-  <div class="document-container">
-    
-    
-    
-    <div class="table-container">
-      <h2 class="table-title">📋 Complete Meeting Schedule Matrix</h2>
-      
-      <table class="main-table">
-        <thead>
-          <tr>
-            <th style="width: 22%;">🎯 Activity Name</th>
-            <th style="width: 10%;">⏱️ Duration<br>(min)</th>
-            <th style="width: 12%;">🕐 Start Time</th>
-            <th style="width: 12%;">🕐 End Time</th>
-            <th style="width: 8%;">📅 SUN</th>
-            <th style="width: 8%;">📅 MON</th>
-            <th style="width: 8%;">📅 TUE</th>
-            <th style="width: 8%;">📅 WED</th>
-            <th style="width: 8%;">📅 THU</th>
-            <th style="width: 10%;">📊 Frequency<br>(days/week)</th>
-            <th style="width: 12%;">📈 Weekly<br>Minutes</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${segments
-            .map((segment) => {
-              const weeklyMinutes = segment.duration * segment.days.length
-              const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
+  <h2 class="table-title">📋 Complete Meeting Schedule Matrix</h2>
+  
+  <table class="main-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">🎯 Activity Name</th>
+        <th style="width: 10%;">⏱️ Duration (min)</th>
+        <th style="width: 12%;">🕐 Start Time</th>
+        <th style="width: 12%;">🕐 End Time</th>
+        <th style="width: 8%;">📅 SUN</th>
+        <th style="width: 8%;">📅 MON</th>
+        <th style="width: 8%;">📅 TUE</th>
+        <th style="width: 8%;">📅 WED</th>
+        <th style="width: 8%;">📅 THU</th>
+        <th style="width: 12%;">📊 Frequency (days/week)</th>
+        <th style="width: 12%;">📈 Weekly Minutes</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${segments
+        .map((segment) => {
+          const weeklyMinutes = segment.duration * segment.days.length
+          const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
 
-              return `
-              <tr>
-                <td class="activity-name">${segment.title}</td>
-                <td><span class="duration-badge">${segment.duration}</span></td>
-                <td><span class="time-badge">${segment.startTime || "N/A"}</span></td>
-                <td><span class="time-badge">${segment.endTime || "N/A"}</span></td>
-                ${days
-                  .map(
-                    (day) => `
-                  <td class="day-cell">
-                    <span class="${segment.days.includes(day) ? "day-yes" : "day-no"}">
-                      ${segment.days.includes(day) ? "✓" : "✗"}
-                    </span>
-                  </td>
-                `,
-                  )
-                  .join("")}
-                <td><span class="frequency-badge">${segment.days.length}/5</span></td>
-                <td><span class="weekly-minutes">${weeklyMinutes}</span></td>
-              </tr>
-            `
-            })
-            .join("")}
-          
-          <!-- Summary Row -->
-          <tr class="summary-row">
-            <td class="activity-name" style="color: #2c3e50;">📊 TOTALS</td>
-            <td><span class="duration-badge" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">${analytics.totalDuration}</span></td>
-            <td colspan="2" style="color: #2c3e50; font-weight: 700;">SUMMARY</td>
-            ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
-              .map((day) => {
-                const dayTotal = segments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
-                return `<td><span class="day-yes" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">${dayTotal}m</span></td>`
-              })
+          return `
+          <tr>
+            <td class="activity-name">${segment.title}</td>
+            <td><span class="duration-badge">${segment.duration}</span></td>
+            <td><span class="time-badge">${segment.startTime || "N/A"}</span></td>
+            <td><span class="time-badge">${segment.endTime || "N/A"}</span></td>
+            ${days
+              .map(
+                (day) => `
+              <td>
+                <span class="${segment.days.includes(day) ? "day-yes" : "day-no"}">
+                  ${segment.days.includes(day) ? "✓" : "✗"}
+                </span>
+              </td>
+            `,
+              )
               .join("")}
-            <td><span class="frequency-badge" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">AVG: ${analytics.averageDuration}m</span></td>
-            <td><span class="weekly-minutes" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">${analytics.totalWeeklyMinutes}</span></td>
+            <td><span class="frequency-badge">${segment.days.length}/5</span></td>
+            <td><span class="weekly-minutes">${weeklyMinutes}</span></td>
           </tr>
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="footer-info">
-      <strong>📄 Document Information</strong> | 
-      Generated: ${new Date().toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })} | 
-      Report: FMDS A3 Schedule Matrix | Version: 6.0 | Format: A3 Landscape | Database: Connected | 
-      Activities: ${analytics.totalActivities} | Weekly Commitment: ${analytics.totalWeeklyMinutes} minutes
-    </div>
+        `
+        })
+        .join("")}
+      
+      <!-- Summary Row -->
+      <tr class="summary-row">
+        <td class="activity-name" style="color: #2c3e50;">📊 TOTALS</td>
+        <td><span class="duration-badge" style="background: #2c3e50;">${analytics.totalDuration}</span></td>
+        <td colspan="2" style="color: #2c3e50; font-weight: bold;">SUMMARY</td>
+        ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
+          .map((day) => {
+            const dayTotal = segments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
+            return `<td><span class="day-yes" style="background: #2c3e50;">${dayTotal}m</span></td>`
+          })
+          .join("")}
+        <td><span class="frequency-badge" style="background: #2c3e50;">AVG: ${analytics.averageDuration}m</span></td>
+        <td><span class="weekly-minutes" style="background: #2c3e50;">${analytics.totalWeeklyMinutes}</span></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <div class="footer-info">
+    <strong>📄 Document Information</strong> | 
+    Generated: ${new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })} | 
+    Report: FMDS Schedule Matrix | Database: Connected | 
+    Activities: ${analytics.totalActivities} | Weekly Commitment: ${analytics.totalWeeklyMinutes} minutes
   </div>
 </body>
-</html>
-`
+</html>`
 
-      // Create and download PDF with A3 optimization
-      const printWindow = window.open("", "_blank")
-      if (printWindow) {
-        printWindow.document.write(htmlContent)
-        printWindow.document.close()
-        printWindow.focus()
-        setTimeout(() => {
-          printWindow.print()
-          printWindow.close()
-        }, 1000)
-      }
+      // Create blob and download
+      const blob = new Blob([htmlContent], { type: "text/html" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `FMDS_Meeting_Schedule_${new Date().toISOString().split("T")[0]}.html`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      toast({
+        title: "PDF Downloaded! 📄",
+        description: "Meeting schedule has been downloaded as HTML file. Open it in browser and print to PDF.",
+      })
     } catch (error) {
       console.error("Error generating PDF:", error)
       toast({
         title: "Error",
         description: "Failed to generate PDF report. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const exportToExcel = async () => {
-    try {
-      const analytics = await meetingSegmentService.getAnalytics()
-
-      // Create comprehensive Excel data with enhanced formatting and colors
-      const currentDate = new Date()
-      const dateStr = currentDate.toLocaleDateString()
-      const timeStr = currentDate.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-
-      // Prepare enhanced data for Excel
-      const excelData = []
-
-      // Add professional header with branding
-      excelData.push(["🏢 FMDS - FIRST MANAGEMENT DEVELOPMENT SYSTEM"])
-      excelData.push(["📊 PROFESSIONAL MEETING SCHEDULE ANALYTICS REPORT"])
-      excelData.push([`📅 Generated: ${dateStr} at ${timeStr}`])
-      excelData.push([`⏰ Meeting Time: ${meetingTime}`])
-      excelData.push(["🎯 Status: Active Schedule | Version: 6.0 Professional | Database: Connected"])
-      excelData.push([""])
-
-      // Add executive dashboard
-      excelData.push(["📈 EXECUTIVE DASHBOARD"])
-      excelData.push(["KPI", "Value", "Unit", "Status", "Trend", "Benchmark"])
-      excelData.push([
-        "Total Activities",
-        analytics.totalActivities,
-        "count",
-        analytics.totalActivities >= 4 ? "✅ Optimal" : "⚠️ Low",
-        analytics.totalActivities >= 4 ? "📈 Good" : "📉 Needs Improvement",
-        "4-8 activities",
-      ])
-      excelData.push([
-        "Total Duration",
-        analytics.totalDuration,
-        "minutes",
-        analytics.totalDuration >= 40 ? "✅ Good" : "⚠️ Low",
-        analytics.totalDuration >= 40 ? "📈 Adequate" : "📉 Increase",
-        "40-60 minutes",
-      ])
-      excelData.push([
-        "Weekly Commitment",
-        analytics.totalWeeklyMinutes,
-        "minutes",
-        analytics.totalWeeklyMinutes >= 200 ? "✅ Excellent" : "⚠️ Low",
-        analytics.totalWeeklyMinutes >= 200 ? "📈 Strong" : "📉 Boost Needed",
-        "200-300 minutes",
-      ])
-      excelData.push([
-        "Schedule Coverage",
-        `${Math.round((analytics.activeDays / 5) * 100)}%`,
-        "percentage",
-        analytics.activeDays >= 4 ? "✅ Excellent" : "⚠️ Partial",
-        analytics.activeDays >= 4 ? "📈 Complete" : "📉 Expand",
-        "80-100%",
-      ])
-      excelData.push([
-        "Average Duration",
-        analytics.averageDuration,
-        "minutes",
-        analytics.averageDuration >= 10 ? "✅ Good" : "⚠️ Short",
-        analytics.averageDuration >= 10 ? "📈 Balanced" : "📉 Extend",
-        "10-20 minutes",
-      ])
-      excelData.push([
-        "Peak Day Load",
-        analytics.mostBusyDay.totalDuration,
-        "minutes",
-        analytics.mostBusyDay.totalDuration <= 40 ? "✅ Manageable" : "⚠️ Heavy",
-        analytics.mostBusyDay.totalDuration <= 40 ? "📈 Balanced" : "📉 Redistribute",
-        "≤40 minutes",
-      ])
-      excelData.push([""])
-
-      // Add detailed activity breakdown with color coding
-      excelData.push(["🎯 DETAILED ACTIVITY BREAKDOWN"])
-      excelData.push([
-        "ID",
-        "Activity Name",
-        "Duration (Min)",
-        "Start Time",
-        "End Time",
-        "Scheduled Days",
-        "Days/Week",
-        "Weekly Minutes",
-        "Category",
-        "Priority Level",
-        "Efficiency Score",
-        "Status",
-        "Color Code",
-        "Database ID",
-      ])
-
-      segments.forEach((segment, index) => {
-        const weeklyMinutes = segment.duration * segment.days.length
-        const category = segment.duration <= 10 ? "⚡ Quick" : segment.duration <= 20 ? "⏱️ Standard" : "🕐 Extended"
-        const priority =
-          segment.days.length >= 4 ? "🔴 Critical" : segment.days.length >= 2 ? "🟡 Important" : "🟢 Normal"
-        const efficiencyScore = Math.round((segment.days.length / 5) * (40 / segment.duration) * 100)
-        const colorCode = segment.duration <= 10 ? "🟢 Green" : segment.duration <= 20 ? "🟡 Yellow" : "🔴 Red"
-
-        excelData.push([
-          `ACT-${String(index + 1).padStart(3, "0")}`,
-          segment.title,
-          segment.duration,
-          segment.startTime || "N/A",
-          segment.endTime || "N/A",
-          segment.days.join(", "),
-          segment.days.length,
-          weeklyMinutes,
-          category,
-          priority,
-          `${efficiencyScore}%`,
-          "✅ Active",
-          colorCode,
-          segment.id,
-        ])
-      })
-
-      excelData.push([""])
-
-      // Add comprehensive daily analysis
-      excelData.push(["📅 DAILY SCHEDULE ANALYSIS"])
-      excelData.push([
-        "Day",
-        "Activities",
-        "Total Minutes",
-        "Total Hours",
-        "Activity List",
-        "Time Window",
-        "Utilization %",
-        "Load Status",
-        "Recommendations",
-      ])
-
-      analytics.allDaysData.forEach((dayData) => {
-        const activityNames = dayData.segments.map((seg) => seg.title).join(" | ")
-        const timeWindow =
-          dayData.segments.length > 0
-            ? `${dayData.segments[0].startTime} - ${dayData.segments[dayData.segments.length - 1].endTime}`
-            : "N/A"
-        const utilization = Math.round((dayData.totalDuration / 40) * 100)
-        const loadStatus =
-          dayData.totalDuration === 0
-            ? "🔵 Free"
-            : dayData.totalDuration <= 20
-              ? "🟢 Light"
-              : dayData.totalDuration <= 35
-                ? "🟡 Moderate"
-                : "🔴 Heavy"
-        const recommendation =
-          dayData.totalDuration === 0
-            ? "Consider adding activities"
-            : dayData.totalDuration > 35
-              ? "Consider redistributing load"
-              : "Well balanced"
-
-        excelData.push([
-          dayData.day,
-          dayData.activityCount,
-          dayData.totalDuration,
-          Math.round((dayData.totalDuration / 60) * 10) / 10,
-          activityNames || "No activities scheduled",
-          timeWindow,
-          `${utilization}%`,
-          loadStatus,
-          recommendation,
-        ])
-      })
-
-      excelData.push([""])
-
-      // Add database connection info
-      excelData.push(["🗄️ DATABASE CONNECTION STATUS"])
-      excelData.push(["Component", "Status", "Details"])
-      excelData.push(["Supabase Connection", "✅ Connected", "Real-time database integration"])
-      excelData.push(["Data Persistence", "✅ Active", "All changes saved automatically"])
-      excelData.push(["Real-time Sync", "✅ Enabled", "Multi-user support available"])
-      excelData.push(["Backup Status", "✅ Automated", "Cloud-based backup system"])
-      excelData.push(["Data Security", "✅ Encrypted", "End-to-end encryption enabled"])
-
-      excelData.push([""])
-
-      // Add metadata and document info
-      excelData.push(["📋 DOCUMENT METADATA"])
-      excelData.push(["Field", "Value", "Description"])
-      excelData.push(["Report Version", "6.0 Professional Database", "Enhanced with real-time database integration"])
-      excelData.push(["Export Format", "Excel CSV Professional", "Optimized for Excel with rich formatting"])
-      excelData.push([
-        "Data Source",
-        "FMDS Meeting Timer + Supabase DB",
-        "Real-time schedule management with persistence",
-      ])
-      excelData.push(["Classification", "Internal Use - Management", "For leadership and planning purposes"])
-      excelData.push([
-        "Next Review Date",
-        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        "Weekly review cycle",
-      ])
-      excelData.push(["Contact", "FMDS Administration Team", "For questions and support"])
-      excelData.push(["Last Updated", `${dateStr} ${timeStr}`, "Real-time data snapshot"])
-      excelData.push(["Database Records", segments.length, "Total segments in database"])
-      excelData.push(["Color Legend", "🟢 Green=Good | 🟡 Yellow=Caution | 🔴 Red=Action Needed", "Status indicators"])
-
-      // Convert to enhanced CSV with proper formatting
-      const csvContent = excelData
-        .map((row) =>
-          row
-            .map((cell) => {
-              const value = String(cell || "")
-              // Escape commas and quotes for CSV
-              if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-                return `"${value.replace(/"/g, '""')}"`
-              }
-              return value
-            })
-            .join(","),
-        )
-        .join("\n")
-
-      // Create and download Excel file with enhanced filename
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-      const link = document.createElement("a")
-      const url = URL.createObjectURL(blob)
-      link.setAttribute("href", url)
-      link.setAttribute("download", `FMDS_Database_Analytics_Report_${new Date().toISOString().split("T")[0]}_v6.0.csv`)
-      link.style.visibility = "hidden"
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      // Show enhanced success message
-      toast({
-        title: "Excel Export Successful! 📊",
-        description: `Professional database analytics report exported with ${segments.length} activities and real-time data.`,
-      })
-    } catch (error) {
-      console.error("Error generating Excel:", error)
-      toast({
-        title: "Error",
-        description: "Failed to generate Excel report. Please try again.",
         variant: "destructive",
       })
     }
@@ -1332,15 +1013,15 @@ export default function MeetingTimer() {
                     </div>
                     <div>
                       <Label htmlFor="new-end-time" className="text-sm font-medium">
-                        End Time:
+                        End Time (Auto-calculated):
                       </Label>
                       <Input
                         id="new-end-time"
                         type="time"
                         value={newSegment.endTime || "7:10"}
-                        onChange={(e) => setNewSegment((prev) => ({ ...prev, endTime: e.target.value }))}
-                        disabled={saving}
-                        className="mt-1"
+                        disabled={true}
+                        className="mt-1 bg-gray-100"
+                        title="End time is automatically calculated based on start time + duration"
                       />
                     </div>
                   </div>
@@ -1451,17 +1132,15 @@ export default function MeetingTimer() {
                     </div>
                     <div>
                       <Label htmlFor="edit-end-time" className="text-sm font-medium">
-                        End Time:
+                        End Time (Auto-calculated):
                       </Label>
                       <Input
                         id="edit-end-time"
                         type="time"
                         value={editingSegment.endTime}
-                        onChange={(e) =>
-                          setEditingSegment((prev) => (prev ? { ...prev, endTime: e.target.value } : null))
-                        }
-                        disabled={saving}
-                        className="mt-1"
+                        disabled={true}
+                        className="mt-1 bg-gray-100"
+                        title="End time is automatically calculated based on start time + duration"
                       />
                     </div>
                   </div>
