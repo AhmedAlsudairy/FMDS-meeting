@@ -227,21 +227,18 @@ export default function MeetingTimer() {
   }
 
   const exportToPDF = () => {
-    // Create a comprehensive table for all days and segments
-    const allDaysData = days.map((day) => {
-      const daySegments = segments.filter((segment) => segment.days.includes(day))
-      return {
-        day,
-        segments: daySegments,
-        totalDuration: daySegments.reduce((sum, seg) => sum + seg.duration, 0),
-      }
-    })
+    // Create a comprehensive single table for all segments
+    const allSegments = segments.map((segment) => ({
+      ...segment,
+      daysString: segment.days.join(", "),
+      frequency: segment.days.length,
+    }))
 
     const totalActivities = segments.length
-    const activeDays = allDaysData.filter((d) => d.segments.length > 0).length
-    const grandTotalDuration = allDaysData.reduce((sum, day) => sum + day.totalDuration, 0)
+    const totalDuration = segments.reduce((sum, seg) => sum + seg.duration, 0)
+    const averageDuration = totalActivities > 0 ? Math.round(totalDuration / totalActivities) : 0
 
-    // Create HTML content for PDF with professional styling
+    // Create HTML content for PDF with single professional table
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -265,7 +262,7 @@ export default function MeetingTimer() {
         }
         
         .container {
-          max-width: 1200px;
+          max-width: 1400px;
           margin: 0 auto;
           background: white;
           border-radius: 15px;
@@ -298,212 +295,234 @@ export default function MeetingTimer() {
         }
         
         .company-logo {
-          width: 60px;
-          height: 60px;
+          width: 80px;
+          height: 80px;
           background: rgba(255,255,255,0.2);
           border-radius: 50%;
           margin: 0 auto 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 32px;
           font-weight: bold;
+          border: 3px solid rgba(255,255,255,0.3);
         }
         
         h1 { 
-          font-size: 2.5em;
-          margin-bottom: 10px;
+          font-size: 3em;
+          margin-bottom: 15px;
           font-weight: 300;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
         }
         
         .subtitle {
-          font-size: 1.2em;
+          font-size: 1.4em;
           opacity: 0.9;
-          margin-bottom: 20px;
+          margin-bottom: 25px;
+          font-weight: 300;
         }
         
         .meeting-info { 
           background: rgba(255,255,255,0.15);
-          padding: 20px;
-          border-radius: 10px;
+          padding: 25px;
+          border-radius: 15px;
           backdrop-filter: blur(10px);
           display: inline-block;
+          border: 1px solid rgba(255,255,255,0.2);
         }
         
         .content {
-          padding: 40px 30px;
+          padding: 50px 30px;
         }
         
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin-bottom: 40px;
+          gap: 25px;
+          margin-bottom: 50px;
         }
         
         .stat-card {
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          padding: 25px;
-          border-radius: 12px;
+          padding: 30px;
+          border-radius: 15px;
           text-align: center;
-          border-left: 5px solid #16a085;
-          box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+          border-left: 6px solid #16a085;
+          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+          transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+          transform: translateY(-5px);
         }
         
         .stat-number {
-          font-size: 2.5em;
+          font-size: 3em;
           font-weight: bold;
           color: #16a085;
-          margin-bottom: 5px;
+          margin-bottom: 10px;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
         
         .stat-label {
           color: #666;
-          font-size: 0.9em;
+          font-size: 1em;
           text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-        
-        .schedule-section {
-          margin-top: 40px;
+          letter-spacing: 2px;
+          font-weight: 600;
         }
         
         .section-title {
-          font-size: 1.8em;
+          font-size: 2.2em;
           color: #2c3e50;
-          margin-bottom: 25px;
-          padding-bottom: 10px;
-          border-bottom: 3px solid #16a085;
+          margin-bottom: 30px;
+          padding-bottom: 15px;
+          border-bottom: 4px solid #16a085;
           display: inline-block;
+          font-weight: 300;
         }
         
-        table { 
+        .main-table { 
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 30px;
+          margin-bottom: 40px;
           background: white;
-          border-radius: 12px;
+          border-radius: 15px;
           overflow: hidden;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          box-shadow: 0 15px 35px rgba(0,0,0,0.1);
         }
         
-        th { 
+        .main-table th { 
           background: linear-gradient(135deg, #16a085 0%, #2ecc71 100%);
           color: white;
-          padding: 18px 15px;
+          padding: 20px 15px;
           text-align: left;
-          font-weight: 600;
+          font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          font-size: 0.85em;
+          letter-spacing: 1.5px;
+          font-size: 0.9em;
+          position: relative;
         }
         
-        td { 
-          padding: 15px;
+        .main-table th::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: rgba(255,255,255,0.3);
+        }
+        
+        .main-table td { 
+          padding: 18px 15px;
           border-bottom: 1px solid #eee;
-          transition: background-color 0.3s ease;
+          transition: all 0.3s ease;
+          vertical-align: middle;
         }
         
-        tr:hover td {
+        .main-table tr:hover td {
           background-color: #f8f9fa;
+          transform: scale(1.01);
         }
         
-        .day-header { 
-          background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-          font-weight: bold;
-          color: #2e7d32;
-          border-left: 4px solid #4caf50;
-        }
-        
-        .total-row { 
-          background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 100%);
-          font-weight: bold;
-          color: #2e7d32;
-          border-top: 2px solid #4caf50;
-        }
-        
-        .no-meetings { 
-          color: #999;
-          font-style: italic;
-          text-align: center;
-          background: #f8f9fa;
+        .main-table tr:last-child td {
+          border-bottom: none;
         }
         
         .activity-name {
-          font-weight: 600;
+          font-weight: 700;
           color: #2c3e50;
+          font-size: 1.1em;
         }
         
-        .duration {
-          background: #e3f2fd;
-          color: #1976d2;
-          padding: 5px 10px;
-          border-radius: 20px;
+        .duration-badge {
+          background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 25px;
           font-weight: bold;
           text-align: center;
           display: inline-block;
-          min-width: 50px;
+          min-width: 70px;
+          box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
         }
         
         .time-range {
           font-family: 'Courier New', monospace;
-          background: #f3e5f5;
-          color: #7b1fa2;
-          padding: 5px 10px;
-          border-radius: 6px;
+          background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 8px;
           text-align: center;
+          font-weight: bold;
+          box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
         }
         
-        .days-list {
+        .days-badge {
+          background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+          color: white;
+          padding: 6px 12px;
+          border-radius: 20px;
           font-size: 0.85em;
-          color: #666;
+          font-weight: 600;
           text-align: center;
+          box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
         }
         
-        .footer {
-          background: #f8f9fa;
-          padding: 30px;
+        .frequency-badge {
+          background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+          color: white;
+          padding: 6px 12px;
+          border-radius: 15px;
+          font-weight: bold;
           text-align: center;
-          border-top: 1px solid #eee;
+          box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+        
+        .summary-section {
+          background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%);
+          padding: 40px;
+          border-radius: 15px;
           margin-top: 40px;
         }
         
-        .footer-content {
+        .summary-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
           gap: 30px;
-          margin-bottom: 20px;
         }
         
-        .footer-section h4 {
+        .summary-card {
+          background: white;
+          padding: 25px;
+          border-radius: 12px;
+          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .summary-card h4 {
           color: #2c3e50;
           margin-bottom: 15px;
-          font-size: 1.1em;
+          font-size: 1.2em;
+          border-bottom: 2px solid #16a085;
+          padding-bottom: 8px;
         }
         
-        .footer-section p {
-          color: #666;
-          font-size: 0.9em;
-          line-height: 1.6;
+        .footer {
+          background: #2c3e50;
+          color: white;
+          padding: 30px;
+          text-align: center;
+          margin-top: 0;
         }
         
         .generated-info {
-          background: white;
-          padding: 15px;
-          border-radius: 8px;
-          border-left: 4px solid #16a085;
-          margin-top: 20px;
-        }
-        
-        .watermark {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          opacity: 0.1;
-          font-size: 0.8em;
-          color: #666;
-          transform: rotate(-45deg);
+          background: rgba(255,255,255,0.1);
+          padding: 20px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.2);
+          backdrop-filter: blur(10px);
         }
         
         @media print {
@@ -515,16 +534,9 @@ export default function MeetingTimer() {
             box-shadow: none;
             border-radius: 0;
           }
-          .watermark {
-            display: none;
+          .main-table tr:hover td {
+            transform: none;
           }
-        }
-        
-        .day-separator {
-          height: 20px;
-          background: linear-gradient(90deg, transparent 0%, #16a085 50%, transparent 100%);
-          margin: 20px 0;
-          opacity: 0.3;
         }
       </style>
     </head>
@@ -532,12 +544,12 @@ export default function MeetingTimer() {
       <div class="container">
         <div class="header">
           <div class="header-content">
-            <div class="company-logo">FM</div>
-            <h1>FMDS Meeting Schedule</h1>
+            <div class="company-logo">FMDS</div>
+            <h1>Meeting Schedule</h1>
             <div class="subtitle">First Management Development System</div>
             <div class="meeting-info">
               <strong>📅 Daily Meeting Time: ${meetingTime}</strong><br>
-              <span style="opacity: 0.8;">Comprehensive Weekly Schedule Overview</span>
+              <span style="opacity: 0.9;">Complete Activity Schedule Overview</span>
             </div>
           </div>
         </div>
@@ -549,98 +561,91 @@ export default function MeetingTimer() {
               <div class="stat-label">Total Activities</div>
             </div>
             <div class="stat-card">
-              <div class="stat-number">${activeDays}</div>
-              <div class="stat-label">Active Days</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number">${grandTotalDuration}</div>
+              <div class="stat-number">${totalDuration}</div>
               <div class="stat-label">Total Minutes</div>
             </div>
             <div class="stat-card">
-              <div class="stat-number">${Math.round((grandTotalDuration / 60) * 10) / 10}</div>
+              <div class="stat-number">${Math.round((totalDuration / 60) * 10) / 10}</div>
               <div class="stat-label">Total Hours</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${averageDuration}</div>
+              <div class="stat-label">Avg Duration</div>
             </div>
           </div>
           
-          <div class="schedule-section">
-            <h2 class="section-title">📋 Weekly Schedule Breakdown</h2>
-            
-            <table>
-              <thead>
+          <h2 class="section-title">📋 Complete Activity Schedule</h2>
+          
+          <table class="main-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">🎯 Activity Name</th>
+                <th style="width: 12%;">⏱️ Duration</th>
+                <th style="width: 18%;">🕐 Time Range</th>
+                <th style="width: 30%;">📅 Scheduled Days</th>
+                <th style="width: 15%;">📊 Frequency</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allSegments
+                .map(
+                  (segment) => `
                 <tr>
-                  <th style="width: 15%;">📅 Day</th>
-                  <th style="width: 35%;">🎯 Activity</th>
-                  <th style="width: 15%;">⏱️ Duration</th>
-                  <th style="width: 20%;">🕐 Time Range</th>
-                  <th style="width: 15%;">📊 Frequency</th>
+                  <td class="activity-name">${segment.title}</td>
+                  <td><span class="duration-badge">${segment.duration} min</span></td>
+                  <td><span class="time-range">${segment.startTime || "N/A"} - ${segment.endTime || "N/A"}</span></td>
+                  <td><span class="days-badge">${segment.daysString}</span></td>
+                  <td><span class="frequency-badge">${segment.frequency} days/week</span></td>
                 </tr>
-              </thead>
-              <tbody>
-                ${allDaysData
-                  .map(
-                    (dayData) => `
-                  ${
-                    dayData.segments.length > 0
-                      ? `
-                    ${dayData.segments
-                      .map(
-                        (segment, index) => `
-                      <tr>
-                        <td ${index === 0 ? 'class="day-header"' : ""}>${
-                          index === 0 ? `<strong>${dayData.day}</strong>` : ""
-                        }</td>
-                        <td class="activity-name">${segment.title}</td>
-                        <td><span class="duration">${segment.duration} min</span></td>
-                        <td class="time-range">${segment.startTime || "N/A"} - ${segment.endTime || "N/A"}</td>
-                        <td class="days-list">${segment.days.length} days/week</td>
-                      </tr>
-                    `,
-                      )
-                      .join("")}
-                    <tr class="total-row">
-                      <td></td>
-                      <td><strong>📊 ${dayData.day} Total</strong></td>
-                      <td><span class="duration">${dayData.totalDuration} min</span></td>
-                      <td style="text-align: center;"><strong>${Math.round((dayData.totalDuration / 60) * 10) / 10}h</strong></td>
-                      <td></td>
-                    </tr>
-                    <tr><td colspan="5" class="day-separator"></td></tr>
-                  `
-                      : `
-                    <tr>
-                      <td class="day-header"><strong>${dayData.day}</strong></td>
-                      <td class="no-meetings" colspan="4">🚫 No meetings scheduled</td>
-                    </tr>
-                    <tr><td colspan="5" class="day-separator"></td></tr>
-                  `
-                  }
-                `,
-                  )
-                  .join("")}
-              </tbody>
-            </table>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+          
+          <div class="summary-section">
+            <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50; font-size: 1.8em;">📊 Schedule Analysis</h3>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <h4>📈 Activity Distribution</h4>
+                <p><strong>Most Frequent:</strong> ${
+                  days
+                    .map((day) => ({
+                      day,
+                      count: segments.filter((s) => s.days.includes(day)).length,
+                    }))
+                    .sort((a, b) => b.count - a.count)[0]?.day || "N/A"
+                }</p>
+                <p><strong>Total Weekly Minutes:</strong> ${segments.reduce((sum, seg) => sum + seg.duration * seg.days.length, 0)} minutes</p>
+                <p><strong>Average per Day:</strong> ${Math.round(segments.reduce((sum, seg) => sum + seg.duration * seg.days.length, 0) / 5)} minutes</p>
+              </div>
+              <div class="summary-card">
+                <h4>⏰ Time Management</h4>
+                <p><strong>Shortest Activity:</strong> ${Math.min(...segments.map((s) => s.duration))} minutes</p>
+                <p><strong>Longest Activity:</strong> ${Math.max(...segments.map((s) => s.duration))} minutes</p>
+                <p><strong>Total Daily Range:</strong> ${meetingTime}</p>
+              </div>
+              <div class="summary-card">
+                <h4>📅 Weekly Coverage</h4>
+                <p><strong>Active Days:</strong> ${days.filter((day) => segments.some((seg) => seg.days.includes(day))).length}/5 weekdays</p>
+                <p><strong>Coverage:</strong> ${Math.round((days.filter((day) => segments.some((seg) => seg.days.includes(day))).length / 5) * 100)}%</p>
+                <p><strong>Most Busy Day:</strong> ${
+                  days
+                    .map((day) => ({
+                      day,
+                      duration: segments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0),
+                    }))
+                    .sort((a, b) => b.duration - a.duration)[0]?.day || "N/A"
+                }</p>
+              </div>
+            </div>
           </div>
         </div>
         
         <div class="footer">
-          <div class="footer-content">
-            <div class="footer-section">
-              <h4>📈 Schedule Summary</h4>
-              <p>This comprehensive schedule covers all FMDS meeting activities across the work week, ensuring optimal time management and productivity tracking.</p>
-            </div>
-            <div class="footer-section">
-              <h4>🎯 Meeting Objectives</h4>
-              <p>Daily structured meetings designed to enhance team communication, track progress, and address operational challenges efficiently.</p>
-            </div>
-            <div class="footer-section">
-              <h4>📊 Performance Metrics</h4>
-              <p>Average meeting duration: ${Math.round(grandTotalDuration / totalActivities)} minutes per activity. Total weekly commitment: ${Math.round((grandTotalDuration / 60) * 10) / 10} hours.</p>
-            </div>
-          </div>
-          
           <div class="generated-info">
             <strong>📄 Document Information</strong><br>
-            Generated on: ${new Date().toLocaleDateString("en-US", {
+            Generated: ${new Date().toLocaleDateString("en-US", {
               weekday: "long",
               year: "numeric",
               month: "long",
@@ -648,12 +653,10 @@ export default function MeetingTimer() {
               hour: "2-digit",
               minute: "2-digit",
             })}<br>
-            Report Type: FMDS Weekly Meeting Schedule | Version: 2.0 | Status: Active
+            Report: FMDS Complete Meeting Schedule | Version: 3.0 | Status: Active
           </div>
         </div>
       </div>
-      
-      <div class="watermark">FMDS Meeting Planner</div>
     </body>
     </html>
   `
@@ -669,6 +672,87 @@ export default function MeetingTimer() {
         printWindow.close()
       }, 500)
     }
+  }
+
+  const exportToExcel = () => {
+    // Prepare data for Excel export
+    const excelData = segments.map((segment, index) => ({
+      "Activity ID": `ACT-${String(index + 1).padStart(3, "0")}`,
+      "Activity Name": segment.title,
+      "Duration (Minutes)": segment.duration,
+      "Start Time": segment.startTime || "N/A",
+      "End Time": segment.endTime || "N/A",
+      "Scheduled Days": segment.days.join(", "),
+      "Days per Week": segment.days.length,
+      "Weekly Minutes": segment.duration * segment.days.length,
+      Category: segment.duration <= 10 ? "Short" : segment.duration <= 20 ? "Medium" : "Long",
+      Status: "Active",
+    }))
+
+    // Add summary rows
+    const totalDuration = segments.reduce((sum, seg) => sum + seg.duration, 0)
+    const totalWeeklyMinutes = segments.reduce((sum, seg) => sum + seg.duration * seg.days.length, 0)
+
+    excelData.push({
+      "Activity ID": "",
+      "Activity Name": "",
+      "Duration (Minutes)": "",
+      "Start Time": "",
+      "End Time": "",
+      "Scheduled Days": "",
+      "Days per Week": "",
+      "Weekly Minutes": "",
+      Category: "",
+      Status: "",
+    })
+
+    excelData.push({
+      "Activity ID": "SUMMARY",
+      "Activity Name": "Total Activities",
+      "Duration (Minutes)": totalDuration,
+      "Start Time": meetingTime.split(" - ")[0],
+      "End Time": meetingTime.split(" - ")[1],
+      "Scheduled Days": `${days.filter((day) => segments.some((seg) => seg.days.includes(day))).length}/5 Days`,
+      "Days per Week": Math.round(segments.reduce((sum, seg) => sum + seg.days.length, 0) / segments.length),
+      "Weekly Minutes": totalWeeklyMinutes,
+      Category: "TOTAL",
+      Status: "Active",
+    })
+
+    // Convert to CSV format
+    const headers = Object.keys(excelData[0])
+    const csvContent = [
+      // Add title rows
+      ["FMDS Meeting Schedule Export"],
+      [`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`],
+      ["First Management Development System"],
+      [`Meeting Time: ${meetingTime}`],
+      [""],
+      headers,
+      ...excelData.map((row) =>
+        headers.map((header) => {
+          const value = row[header as keyof typeof row]
+          // Escape commas and quotes for CSV
+          if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return value
+        }),
+      ),
+    ]
+      .map((row) => row.join(","))
+      .join("\n")
+
+    // Create and download Excel file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `FMDS_Meeting_Schedule_${new Date().toISOString().split("T")[0]}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const progress = timer.totalTime > 0 ? ((timer.totalTime - timer.currentTime) / timer.totalTime) * 100 : 0
@@ -772,9 +856,21 @@ export default function MeetingTimer() {
                 <Plus className="w-4 h-4 mr-2" />
                 Add Activity
               </Button>
-              <Button onClick={exportToPDF} variant="outline">
+              <Button
+                onClick={exportToPDF}
+                variant="outline"
+                className="border-green-500 text-green-700 hover:bg-green-50 bg-transparent"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Export PDF
+              </Button>
+              <Button
+                onClick={exportToExcel}
+                variant="outline"
+                className="border-blue-500 text-blue-700 hover:bg-blue-50 bg-transparent"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Excel
               </Button>
             </div>
 
