@@ -402,16 +402,16 @@ export default function MeetingTimer() {
     }
     
     @page {
-      size: A4 landscape;
-      margin: 15mm;
+      size: A3 landscape;
+      margin: 10mm;
     }
     
     body { 
       font-family: Arial, sans-serif;
-      line-height: 1.4;
+      line-height: 1.3;
       color: #000;
       background: white;
-      font-size: 11pt;
+      font-size: 9pt;
       padding: 0;
     }
     
@@ -424,13 +424,13 @@ export default function MeetingTimer() {
     }
     
     .table-title {
-      font-size: 20pt;
+      font-size: 16pt;
       color: #2c3e50;
-      margin-bottom: 25px;
+      margin-bottom: 15px;
       text-align: center;
       font-weight: bold;
-      border-bottom: 3px solid #3498db;
-      padding-bottom: 15px;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
     }
     
     .main-table { 
@@ -442,21 +442,21 @@ export default function MeetingTimer() {
     .main-table th { 
       background: #2c3e50 !important;
       color: white !important;
-      padding: 12px 8px;
+      padding: 8px 6px;
       text-align: center;
       font-weight: bold;
       border: 1px solid #34495e;
-      font-size: 10pt;
+      font-size: 8pt;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
     
     .main-table td { 
-      padding: 10px 8px;
+      padding: 6px 4px;
       border: 1px solid #ddd;
       text-align: center;
-      font-size: 10pt;
+      font-size: 8pt;
     }
     
     .main-table tr:nth-child(even) {
@@ -562,18 +562,18 @@ export default function MeetingTimer() {
     }
     
     .summary-row td {
-      padding: 12px 8px !important;
-      font-size: 11pt !important;
+      padding: 8px 6px !important;
+      font-size: 9pt !important;
     }
     
     .footer-info {
       background: #34495e !important;
       color: white !important;
-      padding: 15px;
-      border-radius: 5px;
+      padding: 10px;
+      border-radius: 3px;
       text-align: center;
-      font-size: 9pt;
-      margin-top: 20px;
+      font-size: 7pt;
+      margin-top: 15px;
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -582,7 +582,7 @@ export default function MeetingTimer() {
 </head>
 <body>
   <h2 class="table-title">
-    <svg width="64" height="64" viewBox="0 0 148 148" style="display: inline-block; vertical-align: middle; margin-right: 12px;" xmlns="http://www.w3.org/2000/svg">
+    <svg width="48" height="48" viewBox="0 0 148 148" style="display: inline-block; vertical-align: middle; margin-right: 8px;" xmlns="http://www.w3.org/2000/svg">
       <path fill="#FEFFFE" d="M73.000000,149.000000 C48.686802,149.000000 24.873606,149.000000 1.030205,149.000000 C1.030205,99.728500 1.030205,50.456978 1.030205,1.092727 C50.229679,1.092727 99.459587,1.092727 148.844757,1.092727 C148.844757,50.332954 148.844757,99.666420 148.844757,149.000000 C123.790642,149.000000 98.645317,149.000000 73.000000,149.000000"/>
       <path fill="#0AA3A9" d="M66.077576,69.029228 C58.080856,79.589882 50.084141,90.150543 41.662998,101.271706 C30.511992,85.376930 19.711630,69.981964 8.921316,54.601326 C16.441002,48.567165 25.073895,48.218052 33.498177,53.827408 C37.630226,56.578758 41.392937,59.884796 45.813919,63.327366 C51.814465,69.509949 58.692383,70.213272 66.077576,69.029228"/>
       <path fill="#EAC448" d="M66.046532,69.015396 C58.692383,70.213272 51.814465,69.509949 46.144756,63.421082 C52.116474,59.943680 58.193146,56.645069 64.416634,53.651722 C66.124229,52.830418 68.327934,52.481773 70.200630,52.721970 C72.021149,52.955467 74.198204,53.838276 75.259438,55.189407 C75.833870,55.920750 74.692276,58.408249 73.817719,59.780312 C72.230087,62.271107 70.263710,64.520485 67.972771,67.144089"/>
@@ -593,15 +593,15 @@ export default function MeetingTimer() {
   <table class="main-table">
     <thead>
       <tr>
-        <th style="width: 30%;">🎯 Activity Name</th>
-        <th style="width: 12%;">⏱️ Duration (min)</th>
-        <th style="width: 9%;"> SUN<br><small style="font-size: 7pt;">(time/duration)</small></th>
-        <th style="width: 9%;">📅 MON<br><small style="font-size: 7pt;">(time/duration)</small></th>
-        <th style="width: 9%;">📅 TUE<br><small style="font-size: 7pt;">(time/duration)</small></th>
-        <th style="width: 9%;">📅 WED<br><small style="font-size: 7pt;">(time/duration)</small></th>
-        <th style="width: 9%;">📅 THU<br><small style="font-size: 7pt;">(time/duration)</small></th>
-        <th style="width: 13%;">📊 Frequency (days/week)</th>
-        <th style="width: 13%;">📈 Weekly Minutes</th>
+        <th style="width: 28%;">🎯 Activity Name</th>
+        <th style="width: 10%;">⏱️ Avg Duration (min)</th>
+        <th style="width: 10%;">📅 SUN<br><small style="font-size: 6pt;">(time/duration)</small></th>
+        <th style="width: 10%;">📅 MON<br><small style="font-size: 6pt;">(time/duration)</small></th>
+        <th style="width: 10%;">📅 TUE<br><small style="font-size: 6pt;">(time/duration)</small></th>
+        <th style="width: 10%;">📅 WED<br><small style="font-size: 6pt;">(time/duration)</small></th>
+        <th style="width: 10%;">📅 THU<br><small style="font-size: 6pt;">(time/duration)</small></th>
+        <th style="width: 12%;">📊 Frequency (days/week)</th>
+        <th style="width: 12%;">📈 Weekly Minutes</th>
       </tr>
     </thead>
     <tbody>
@@ -612,7 +612,16 @@ export default function MeetingTimer() {
           return `
           <tr>
             <td class="activity-name">${segment.title}</td>
-            <td><span class="duration-badge">${segment.duration}</span></td>
+            <td><span class="duration-badge">${
+              // Calculate average duration across all scheduled days
+              segment.days.length > 0 
+                ? Math.round(segment.days.reduce((total, day) => {
+                    const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                    const duration = daySchedule ? daySchedule.duration : segment.duration
+                    return total + duration
+                  }, 0) / segment.days.length)
+                : segment.duration
+            }</span></td>
             ${days
               .map(
                 (day) => {
@@ -632,9 +641,9 @@ export default function MeetingTimer() {
                   
                   return `
                   <td>
-                    <div class="day-yes" style="padding: 4px 6px;">
-                      <div style="font-weight: bold; margin-bottom: 2px;">✓</div>
-                      <div style="font-size: 7pt; line-height: 1.1;">
+                    <div class="day-yes" style="padding: 3px 4px;">
+                      <div style="font-weight: bold; margin-bottom: 1px;">✓</div>
+                      <div style="font-size: 6pt; line-height: 1.0;">
                         <div style="margin-bottom: 1px;">${startTime}-${endTime}</div>
                         <div>${duration}min</div>
                       </div>
@@ -660,7 +669,10 @@ export default function MeetingTimer() {
       <!-- Summary Row -->
       <tr class="summary-row">
         <td class="activity-name" style="color: #2c3e50;">📊 TOTALS</td>
-        <td><span class="duration-badge" style="background: #2c3e50;">${analytics.totalDuration}</span></td>
+        <td><span class="duration-badge" style="background: #2c3e50;">${
+          // Calculate overall average duration
+          Math.round(analytics.totalDuration / (analytics.totalActivities || 1))
+        }</span></td>
         ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
           .map((day) => {
             const dayTotal = sortedSegments
