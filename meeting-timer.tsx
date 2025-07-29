@@ -317,6 +317,14 @@ export default function MeetingTimer() {
       padding: 20px;
     }
     
+    @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+    
     .table-title {
       font-size: 18pt;
       color: #2c3e50;
@@ -334,13 +342,16 @@ export default function MeetingTimer() {
     }
     
     .main-table th { 
-      background: #2c3e50;
-      color: white;
+      background: #2c3e50 !important;
+      color: white !important;
       padding: 12px 8px;
       text-align: center;
       font-weight: bold;
       border: 1px solid #34495e;
       font-size: 10pt;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .main-table td { 
@@ -351,7 +362,10 @@ export default function MeetingTimer() {
     }
     
     .main-table tr:nth-child(even) {
-      background-color: #f8f9fa;
+      background-color: #f8f9fa !important;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .activity-name {
@@ -362,64 +376,85 @@ export default function MeetingTimer() {
     }
     
     .duration-badge {
-      background: #3498db;
-      color: white;
+      background: #3498db !important;
+      color: white !important;
       padding: 4px 8px;
       border-radius: 4px;
       font-weight: bold;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .time-badge {
-      background: #9b59b6;
-      color: white;
+      background: #9b59b6 !important;
+      color: white !important;
       padding: 3px 6px;
       border-radius: 4px;
       font-family: monospace;
       font-weight: bold;
       font-size: 9pt;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .day-yes {
-      background: #27ae60;
-      color: white;
+      background: #27ae60 !important;
+      color: white !important;
       padding: 3px 6px;
       border-radius: 3px;
       font-weight: bold;
       font-size: 9pt;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .day-no {
-      background: #95a5a6;
-      color: white;
+      background: #95a5a6 !important;
+      color: white !important;
       padding: 3px 6px;
       border-radius: 3px;
       font-weight: bold;
       opacity: 0.7;
       font-size: 9pt;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .frequency-badge {
-      background: #f39c12;
-      color: white;
+      background: #f39c12 !important;
+      color: white !important;
       padding: 4px 8px;
       border-radius: 4px;
       font-weight: bold;
       font-size: 9pt;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .weekly-minutes {
-      background: #e74c3c;
-      color: white;
+      background: #e74c3c !important;
+      color: white !important;
       padding: 4px 8px;
       border-radius: 4px;
       font-weight: bold;
       font-size: 9pt;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .summary-row {
       background: #ecf0f1 !important;
       font-weight: bold !important;
       border-top: 2px solid #2c3e50 !important;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     
     .summary-row td {
@@ -428,18 +463,21 @@ export default function MeetingTimer() {
     }
     
     .footer-info {
-      background: #34495e;
-      color: white;
+      background: #34495e !important;
+      color: white !important;
       padding: 15px;
       border-radius: 5px;
       text-align: center;
       font-size: 9pt;
       margin-top: 20px;
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
   </style>
 </head>
 <body>
-  <h2 class="table-title">📋 Complete Meeting Schedule Matrix</h2>
+  <h2 class="table-title">📋 e Meeting Schedule Matrix</h2>
   
   <table class="main-table">
     <thead>
