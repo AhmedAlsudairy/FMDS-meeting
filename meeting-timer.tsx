@@ -332,14 +332,6 @@ export default function MeetingTimer() {
         return timeA.localeCompare(timeB)
       })
 
-      // Calculate duration by day for summary
-      const dayDurations = days.map(day => {
-        const daySegments = sortedSegments.filter(segment => segment.days.includes(day))
-        const totalDuration = daySegments.reduce((sum, segment) => sum + segment.duration, 0)
-        const activityCount = daySegments.length
-        return { day, totalDuration, activityCount }
-      })
-
       // Create HTML content for PDF with proper PDF generation
       const htmlContent = `
 <!DOCTYPE html>
@@ -584,6 +576,22 @@ export default function MeetingTimer() {
         .join("")}
       
       <!-- Summary Row -->
+      <!-- Day Duration Summary Row -->
+      <tr style="background: #e8f4f8 !important; border-top: 1px solid #bdc3c7;">
+        <td class="activity-name" style="color: #34495e; font-size: 9pt;">📈 Daily Totals</td>
+        <td style="color: #7f8c8d; font-size: 9pt;">-</td>
+        <td colspan="2" style="color: #34495e; font-weight: bold; font-size: 9pt;">MINUTES PER DAY</td>
+        ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
+          .map((day) => {
+            const dayTotal = sortedSegments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
+            return `<td style="text-align: center;"><span style="background: #3498db !important; color: white !important; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 8pt; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important;">${dayTotal}min</span></td>`
+          })
+          .join("")}
+        <td style="color: #7f8c8d; font-size: 9pt;">-</td>
+        <td style="color: #7f8c8d; font-size: 9pt;">-</td>
+      </tr>
+      
+      <!-- Summary Row -->
       <tr class="summary-row">
         <td class="activity-name" style="color: #2c3e50;">📊 TOTALS</td>
         <td><span class="duration-badge" style="background: #2c3e50;">${analytics.totalDuration}</span></td>
@@ -599,49 +607,6 @@ export default function MeetingTimer() {
       </tr>
     </tbody>
   </table>
-  
-  <!-- Daily Duration Summary -->
-  <div style="margin: 30px 0 20px 0;">
-    <h3 style="font-size: 16pt; color: #2c3e50; margin-bottom: 15px; text-align: center; font-weight: bold; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
-      📊 Daily Meeting Duration Summary
-    </h3>
-    <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
-      ${dayDurations.map(({ day, totalDuration, activityCount }) => `
-        <div style="
-          background: ${totalDuration > 0 ? '#e8f5e8' : '#f8f9fa'} !important;
-          border: 2px solid ${totalDuration > 0 ? '#27ae60' : '#95a5a6'};
-          border-radius: 8px;
-          padding: 15px 20px;
-          text-align: center;
-          min-width: 120px;
-          -webkit-print-color-adjust: exact !important;
-          color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        ">
-          <div style="font-weight: bold; color: #2c3e50; font-size: 12pt; margin-bottom: 8px;">
-            ${day.slice(0, 3).toUpperCase()}
-          </div>
-          <div style="
-            background: ${totalDuration > 0 ? '#27ae60' : '#95a5a6'} !important;
-            color: white !important;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14pt;
-            margin-bottom: 5px;
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          ">
-            ${totalDuration}min
-          </div>
-          <div style="color: #7f8c8d; font-size: 9pt;">
-            ${activityCount} ${activityCount === 1 ? 'activity' : 'activities'}
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  </div>
   
   <div class="footer-info">
     <svg width="16" height="16" viewBox="0 0 148 148" style="display: inline-block; vertical-align: middle; margin-right: 8px;" xmlns="http://www.w3.org/2000/svg">
