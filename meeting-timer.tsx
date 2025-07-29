@@ -507,6 +507,12 @@ export default function MeetingTimer() {
       -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
       print-color-adjust: exact !important;
+      text-align: center;
+      min-height: 35px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
     
     .day-no {
@@ -591,11 +597,11 @@ export default function MeetingTimer() {
         <th style="width: 10%;">⏱️ Duration (min)</th>
         <th style="width: 12%;">🕐 Start Time</th>
         <th style="width: 12%;">🕐 End Time</th>
-        <th style="width: 8%;">📅 SUN</th>
-        <th style="width: 8%;">📅 MON</th>
-        <th style="width: 8%;">📅 TUE</th>
-        <th style="width: 8%;">📅 WED</th>
-        <th style="width: 8%;">📅 THU</th>
+        <th style="width: 8%;">📅 SUN<br><small style="font-size: 7pt;">(time/dur)</small></th>
+        <th style="width: 8%;">📅 MON<br><small style="font-size: 7pt;">(time/dur)</small></th>
+        <th style="width: 8%;">📅 TUE<br><small style="font-size: 7pt;">(time/dur)</small></th>
+        <th style="width: 8%;">📅 WED<br><small style="font-size: 7pt;">(time/dur)</small></th>
+        <th style="width: 8%;">📅 THU<br><small style="font-size: 7pt;">(time/dur)</small></th>
         <th style="width: 12%;">📊 Frequency (days/week)</th>
         <th style="width: 12%;">📈 Weekly Minutes</th>
       </tr>
@@ -603,7 +609,6 @@ export default function MeetingTimer() {
     <tbody>
       ${sortedSegments
         .map((segment) => {
-          const weeklyMinutes = segment.duration * segment.days.length
           const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
 
           return `
@@ -614,17 +619,43 @@ export default function MeetingTimer() {
             <td><span class="time-badge">${segment.endTime || "N/A"}</span></td>
             ${days
               .map(
-                (day) => `
-              <td>
-                <span class="${segment.days.includes(day) ? "day-yes" : "day-no"}">
-                  ${segment.days.includes(day) ? "✓" : "✗"}
-                </span>
-              </td>
-            `,
+                (day) => {
+                  const isScheduled = segment.days.includes(day)
+                  if (!isScheduled) {
+                    return `
+                    <td>
+                      <span class="day-no">✗</span>
+                    </td>`
+                  }
+                  
+                  // Check if there's a day-specific schedule
+                  const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                  const duration = daySchedule ? daySchedule.duration : segment.duration
+                  const startTime = daySchedule ? daySchedule.startTime : segment.startTime
+                  const endTime = daySchedule ? daySchedule.endTime : segment.endTime
+                  
+                  return `
+                  <td>
+                    <div class="day-yes" style="padding: 4px 6px;">
+                      <div style="font-weight: bold; margin-bottom: 2px;">✓</div>
+                      <div style="font-size: 8pt; line-height: 1.1;">
+                        <div>${startTime || 'N/A'}</div>
+                        <div>${duration}min</div>
+                      </div>
+                    </div>
+                  </td>`
+                }
               )
               .join("")}
             <td><span class="frequency-badge">${segment.days.length}/5</span></td>
-            <td><span class="weekly-minutes">${weeklyMinutes}</span></td>
+            <td><span class="weekly-minutes">${
+              // Calculate total weekly minutes considering day-specific durations
+              segment.days.reduce((total, day) => {
+                const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                const duration = daySchedule ? daySchedule.duration : segment.duration
+                return total + duration
+              }, 0)
+            }</span></td>
           </tr>
         `
         })
@@ -637,12 +668,28 @@ export default function MeetingTimer() {
         <td colspan="2" style="color: #2c3e50; font-weight: bold;">SUMMARY</td>
         ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
           .map((day) => {
-            const dayTotal = sortedSegments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
+            const dayTotal = sortedSegments
+              .filter((s) => s.days.includes(day))
+              .reduce((sum, s) => {
+                // Use day-specific duration if available, otherwise use default duration
+                const daySchedule = s.daySchedules?.find(ds => ds.day === day)
+                const duration = daySchedule ? daySchedule.duration : s.duration
+                return sum + duration
+              }, 0)
             return `<td><span class="day-yes" style="background: #2c3e50;">${dayTotal}m</span></td>`
           })
           .join("")}
         <td><span class="frequency-badge" style="background: #2c3e50;">AVG: ${analytics.averageDuration}m</span></td>
-        <td><span class="weekly-minutes" style="background: #2c3e50;">${analytics.totalWeeklyMinutes}</span></td>
+        <td><span class="weekly-minutes" style="background: #2c3e50;">${
+          // Calculate total weekly minutes considering day-specific durations
+          sortedSegments.reduce((total, segment) => {
+            return total + segment.days.reduce((segmentTotal, day) => {
+              const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+              const duration = daySchedule ? daySchedule.duration : segment.duration
+              return segmentTotal + duration
+            }, 0)
+          }, 0)
+        }</span></td>
       </tr>
     </tbody>
   </table>
@@ -662,7 +709,16 @@ export default function MeetingTimer() {
       hour: "2-digit",
       minute: "2-digit",
     })} | 
-    Database: Connected | Activities: ${analytics.totalActivities} | Weekly Commitment: ${analytics.totalWeeklyMinutes} minutes
+    Database: Connected | Activities: ${analytics.totalActivities} | Weekly Commitment: ${
+      // Calculate total weekly minutes considering day-specific durations  
+      sortedSegments.reduce((total, segment) => {
+        return total + segment.days.reduce((segmentTotal, day) => {
+          const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+          const duration = daySchedule ? daySchedule.duration : segment.duration
+          return segmentTotal + duration
+        }, 0)
+      }, 0)
+    } minutes
   </div>
 </body>
 </html>`
