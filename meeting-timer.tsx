@@ -759,6 +759,251 @@ export default function MeetingTimer() {
     }
   }
 
+  const downloadPDF = async () => {
+    try {
+      const analytics = await meetingSegmentService.getAnalytics()
+
+      // Sort segments by start time for ordered display
+      const sortedSegments = [...segments].sort((a, b) => {
+        const timeA = a.startTime || "00:00"
+        const timeB = b.startTime || "00:00"
+        return timeA.localeCompare(timeB)
+      })
+
+      // Create a temporary container for PDF generation
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.left = '-9999px'
+      container.style.top = '-9999px'
+      container.style.width = '1400px' // A3 landscape width approximation
+      container.style.fontFamily = 'Arial, sans-serif'
+      container.style.fontSize = '12px'
+      container.style.color = '#000'
+      container.style.backgroundColor = '#fff'
+      container.style.padding = '20px'
+
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <svg width="48" height="48" viewBox="0 0 148 148" style="display: inline-block; vertical-align: middle; margin-right: 8px;" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#FEFFFE" d="M73.000000,149.000000 C48.686802,149.000000 24.873606,149.000000 1.030205,149.000000 C1.030205,99.728500 1.030205,50.456978 1.030205,1.092727 C50.229679,1.092727 99.459587,1.092727 148.844757,1.092727 C148.844757,50.332954 148.844757,99.666420 148.844757,149.000000 C123.790642,149.000000 98.645317,149.000000 73.000000,149.000000"/>
+            <path fill="#0AA3A9" d="M66.077576,69.029228 C58.080856,79.589882 50.084141,90.150543 41.662998,101.271706 C30.511992,85.376930 19.711630,69.981964 8.921316,54.601326 C16.441002,48.567165 25.073895,48.218052 33.498177,53.827408 C37.630226,56.578758 41.392937,59.884796 45.813919,63.327366 C51.814465,69.509949 58.692383,70.213272 66.077576,69.029228"/>
+            <path fill="#EAC448" d="M66.046532,69.015396 C58.692383,70.213272 51.814465,69.509949 46.144756,63.421082 C52.116474,59.943680 58.193146,56.645069 64.416634,53.651722 C66.124229,52.830418 68.327934,52.481773 70.200630,52.721970 C72.021149,52.955467 74.198204,53.838276 75.259438,55.189407 C75.833870,55.920750 74.692276,58.408249 73.817719,59.780312 C72.230087,62.271107 70.263710,64.520485 67.972771,67.144089"/>
+          </svg>
+          <h2 style="font-size: 24px; color: #2c3e50; margin: 10px 0; font-weight: bold; border-bottom: 2px solid #3498db; padding-bottom: 10px; display: inline-block;">
+            FMDS Meeting Schedule Matrix
+          </h2>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #ddd;">
+          <thead>
+            <tr style="background-color: #2c3e50; color: white;">
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">🎯 Activity Name</th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">⏱️ Avg Duration (min)</th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">📅 SUN<br><small style="font-size: 8px;">(time/duration)</small></th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">📅 MON<br><small style="font-size: 8px;">(time/duration)</small></th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">📅 TUE<br><small style="font-size: 8px;">(time/duration)</small></th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">📅 WED<br><small style="font-size: 8px;">(time/duration)</small></th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">📅 THU<br><small style="font-size: 8px;">(time/duration)</small></th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">📊 Frequency</th>
+              <th style="padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #34495e; font-size: 11px;">📈 Weekly Minutes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sortedSegments
+              .map((segment, index) => {
+                const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
+                const rowStyle = index % 2 === 0 ? 'background-color: #f8f9fa;' : ''
+
+                return `
+                <tr style="${rowStyle}">
+                  <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: left; font-weight: bold; color: #2c3e50;">${segment.title}</td>
+                  <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">
+                    <span style="background: #3498db; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+                      ${
+                        // Calculate average duration across all scheduled days
+                        segment.days.length > 0 
+                          ? Math.round(segment.days.reduce((total, day) => {
+                              const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                              const duration = daySchedule ? daySchedule.duration : segment.duration
+                              return total + duration
+                            }, 0) / segment.days.length)
+                          : segment.duration
+                      }
+                    </span>
+                  </td>
+                  ${days
+                    .map(
+                      (day) => {
+                        const isScheduled = segment.days.includes(day)
+                        if (!isScheduled) {
+                          return `
+                          <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">
+                            <span style="background: #95a5a6; color: white; padding: 3px 6px; border-radius: 3px; font-weight: bold; opacity: 0.7;">✗</span>
+                          </td>`
+                        }
+                        
+                        // Check if there's a day-specific schedule
+                        const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                        const duration = daySchedule ? daySchedule.duration : segment.duration
+                        const startTime = daySchedule ? daySchedule.startTime : segment.startTime
+                        const endTime = daySchedule ? daySchedule.endTime : segment.endTime
+                        
+                        return `
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">
+                          <div style="background: #27ae60; color: white; padding: 6px 4px; border-radius: 3px; font-weight: bold; display: inline-block; min-width: 80px;">
+                            <div style="font-weight: bold; margin-bottom: 2px;">✓</div>
+                            <div style="font-size: 9px; line-height: 1.2;">
+                              <div style="margin-bottom: 1px;">${startTime}-${endTime}</div>
+                              <div>${duration}min</div>
+                            </div>
+                          </div>
+                        </td>`
+                      }
+                    )
+                    .join("")}
+                  <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">
+                    <span style="background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${segment.days.length}/5</span>
+                  </td>
+                  <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">
+                    <span style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+                      ${
+                        // Calculate total weekly minutes considering day-specific durations
+                        segment.days.reduce((total, day) => {
+                          const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                          const duration = daySchedule ? daySchedule.duration : segment.duration
+                          return total + duration
+                        }, 0)
+                      }
+                    </span>
+                  </td>
+                </tr>
+              `
+              })
+              .join("")}
+            
+            <!-- Summary Row -->
+            <tr style="background: #ecf0f1; font-weight: bold; border-top: 2px solid #2c3e50;">
+              <td style="padding: 12px 8px; border: 1px solid #ddd; text-align: left; color: #2c3e50; font-weight: bold;">📊 TOTALS</td>
+              <td style="padding: 12px 8px; border: 1px solid #ddd; text-align: center;">
+                <span style="background: #2c3e50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+                  ${Math.round(analytics.totalDuration / (analytics.totalActivities || 1))}
+                </span>
+              </td>
+              ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
+                .map((day) => {
+                  const dayTotal = sortedSegments
+                    .filter((s) => s.days.includes(day))
+                    .reduce((sum, s) => {
+                      // Use day-specific duration if available, otherwise use default duration
+                      const daySchedule = s.daySchedules?.find(ds => ds.day === day)
+                      const duration = daySchedule ? daySchedule.duration : s.duration
+                      return sum + duration
+                    }, 0)
+                  return `<td style="padding: 12px 8px; border: 1px solid #ddd; text-align: center;"><span style="background: #2c3e50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${dayTotal}m</span></td>`
+                })
+                .join("")}
+              <td style="padding: 12px 8px; border: 1px solid #ddd; text-align: center;">
+                <span style="background: #2c3e50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">AVG: ${analytics.averageDuration}m</span>
+              </td>
+              <td style="padding: 12px 8px; border: 1px solid #ddd; text-align: center;">
+                <span style="background: #2c3e50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+                  ${
+                    // Calculate total weekly minutes considering day-specific durations
+                    sortedSegments.reduce((total, segment) => {
+                      return total + segment.days.reduce((segmentTotal, day) => {
+                        const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                        const duration = daySchedule ? daySchedule.duration : segment.duration
+                        return segmentTotal + duration
+                      }, 0)
+                    }, 0)
+                  }
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div style="background: #34495e; color: white; padding: 15px; border-radius: 3px; text-align: center; font-size: 10px; margin-top: 20px;">
+          <strong>Electrical Team FMDS Daily Schedule</strong> | 
+          Generated: ${new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })} | 
+          Database: Connected | Activities: ${analytics.totalActivities} | Weekly Commitment: ${
+            // Calculate total weekly minutes considering day-specific durations  
+            sortedSegments.reduce((total, segment) => {
+              return total + segment.days.reduce((segmentTotal, day) => {
+                const daySchedule = segment.daySchedules?.find(ds => ds.day === day)
+                const duration = daySchedule ? daySchedule.duration : segment.duration
+                return segmentTotal + duration
+              }, 0)
+            }, 0)
+          } minutes
+        </div>
+      `
+
+      document.body.appendChild(container)
+
+      // Use html2canvas and jsPDF to generate PDF
+      const { default: html2canvas } = await import('html2canvas')
+      const { default: jsPDF } = await import('jspdf')
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 1400,
+        height: container.scrollHeight
+      })
+
+      document.body.removeChild(container)
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a3'
+      })
+
+      const imgWidth = 420 // A3 landscape width in mm
+      const pageHeight = 297 // A3 landscape height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      let heightLeft = imgHeight
+
+      let position = 0
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+      }
+
+      const fileName = `FMDS-Meeting-Schedule-${new Date().toISOString().split('T')[0]}.pdf`
+      pdf.save(fileName)
+
+      toast({
+        title: "PDF Downloaded! 📄",
+        description: `File saved as ${fileName}`,
+      })
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      toast({
+        title: "Error",
+        description: "Failed to download PDF. Please try again or use the print option.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const progress = timer.totalTime > 0 ? ((timer.totalTime - timer.currentTime) / timer.totalTime) * 100 : 0
 
   if (loading) {
@@ -925,6 +1170,16 @@ export default function MeetingTimer() {
                       className="w-full border-green-500 text-green-700 hover:bg-green-50"
                     >
                       <Download className="w-4 h-4 mr-2" />
+                      Print PDF
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        downloadPDF()
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
                       Download PDF
                     </Button>
                     <Button
@@ -957,6 +1212,13 @@ export default function MeetingTimer() {
                   onClick={exportToPDF}
                   variant="outline"
                   className="border-green-500 text-green-700 hover:bg-green-50 bg-transparent"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Print PDF
+                </Button>
+                <Button
+                  onClick={downloadPDF}
+                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download PDF
