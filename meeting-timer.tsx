@@ -335,7 +335,7 @@ export default function MeetingTimer() {
       color: white;
       padding: 20px 25px;
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       border-radius: 12px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -384,38 +384,6 @@ export default function MeetingTimer() {
       print-color-adjust: exact;
     }
     
-    .stats-summary {
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 25px;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      padding: 20px;
-      border-radius: 12px;
-      border: 3px solid #3498db;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      flex-shrink: 0;
-    }
-    
-    .stat-item {
-      text-align: center;
-      padding: 12px;
-    }
-    
-    .stat-number {
-      font-size: 2.2em;
-      font-weight: 800;
-      color: #2c3e50;
-      margin-bottom: 8px;
-    }
-    
-    .stat-label {
-      color: #64748b;
-      font-size: 0.9em;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 600;
-    }
     
     .table-container {
       flex: 1;
@@ -603,32 +571,7 @@ export default function MeetingTimer() {
       </div>
     </div>
     
-    <div class="stats-summary">
-      <div class="stat-item">
-        <div class="stat-number">${analytics.totalActivities}</div>
-        <div class="stat-label">Total Activities</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">${analytics.totalDuration}</div>
-        <div class="stat-label">Total Minutes</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">${Math.round((analytics.totalDuration / 60) * 10) / 10}</div>
-        <div class="stat-label">Total Hours</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">${analytics.averageDuration}</div>
-        <div class="stat-label">Avg Duration</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">${analytics.activeDays}</div>
-        <div class="stat-label">Active Days</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">${analytics.totalWeeklyMinutes}</div>
-        <div class="stat-label">Weekly Minutes</div>
-      </div>
-    </div>
+    
     
     <div class="table-container">
       <h2 class="table-title">📋 Complete Meeting Schedule Matrix</h2>
