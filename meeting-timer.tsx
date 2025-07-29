@@ -237,91 +237,426 @@ export default function MeetingTimer() {
       }
     })
 
-    // Create HTML content for PDF
+    const totalActivities = segments.length
+    const activeDays = allDaysData.filter((d) => d.segments.length > 0).length
+    const grandTotalDuration = allDaysData.reduce((sum, day) => sum + day.totalDuration, 0)
+
+    // Create HTML content for PDF with professional styling
     const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>FMDS Meeting Schedule</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          h1 { color: #333; text-align: center; margin-bottom: 30px; }
-          .meeting-info { text-align: center; margin-bottom: 30px; color: #666; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-          th { background-color: #f5f5f5; font-weight: bold; }
-          tr:nth-child(even) { background-color: #f9f9f9; }
-          .day-header { background-color: #e8f5e8; font-weight: bold; }
-          .total-row { background-color: #f0f8f0; font-weight: bold; }
-          .no-meetings { color: #999; font-style: italic; }
-        </style>
-      </head>
-      <body>
-        <h1>FMDS Meeting Schedule</h1>
-        <div class="meeting-info">
-          <p>Daily Meeting Time: ${meetingTime}</p>
-          <p>Generated on: ${new Date().toLocaleDateString()}</p>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>FMDS Meeting Schedule</title>
+      <meta charset="UTF-8">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          min-height: 100vh;
+          padding: 20px;
+        }
+        
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 15px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+          overflow: hidden;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #16a085 0%, #2ecc71 100%);
+          color: white;
+          padding: 40px 30px;
+          text-align: center;
+          position: relative;
+        }
+        
+        .header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+          opacity: 0.3;
+        }
+        
+        .header-content {
+          position: relative;
+          z-index: 1;
+        }
+        
+        .company-logo {
+          width: 60px;
+          height: 60px;
+          background: rgba(255,255,255,0.2);
+          border-radius: 50%;
+          margin: 0 auto 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          font-weight: bold;
+        }
+        
+        h1 { 
+          font-size: 2.5em;
+          margin-bottom: 10px;
+          font-weight: 300;
+          letter-spacing: 2px;
+        }
+        
+        .subtitle {
+          font-size: 1.2em;
+          opacity: 0.9;
+          margin-bottom: 20px;
+        }
+        
+        .meeting-info { 
+          background: rgba(255,255,255,0.15);
+          padding: 20px;
+          border-radius: 10px;
+          backdrop-filter: blur(10px);
+          display: inline-block;
+        }
+        
+        .content {
+          padding: 40px 30px;
+        }
+        
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+        
+        .stat-card {
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          padding: 25px;
+          border-radius: 12px;
+          text-align: center;
+          border-left: 5px solid #16a085;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .stat-number {
+          font-size: 2.5em;
+          font-weight: bold;
+          color: #16a085;
+          margin-bottom: 5px;
+        }
+        
+        .stat-label {
+          color: #666;
+          font-size: 0.9em;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        
+        .schedule-section {
+          margin-top: 40px;
+        }
+        
+        .section-title {
+          font-size: 1.8em;
+          color: #2c3e50;
+          margin-bottom: 25px;
+          padding-bottom: 10px;
+          border-bottom: 3px solid #16a085;
+          display: inline-block;
+        }
+        
+        table { 
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 30px;
+          background: white;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        th { 
+          background: linear-gradient(135deg, #16a085 0%, #2ecc71 100%);
+          color: white;
+          padding: 18px 15px;
+          text-align: left;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          font-size: 0.85em;
+        }
+        
+        td { 
+          padding: 15px;
+          border-bottom: 1px solid #eee;
+          transition: background-color 0.3s ease;
+        }
+        
+        tr:hover td {
+          background-color: #f8f9fa;
+        }
+        
+        .day-header { 
+          background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+          font-weight: bold;
+          color: #2e7d32;
+          border-left: 4px solid #4caf50;
+        }
+        
+        .total-row { 
+          background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 100%);
+          font-weight: bold;
+          color: #2e7d32;
+          border-top: 2px solid #4caf50;
+        }
+        
+        .no-meetings { 
+          color: #999;
+          font-style: italic;
+          text-align: center;
+          background: #f8f9fa;
+        }
+        
+        .activity-name {
+          font-weight: 600;
+          color: #2c3e50;
+        }
+        
+        .duration {
+          background: #e3f2fd;
+          color: #1976d2;
+          padding: 5px 10px;
+          border-radius: 20px;
+          font-weight: bold;
+          text-align: center;
+          display: inline-block;
+          min-width: 50px;
+        }
+        
+        .time-range {
+          font-family: 'Courier New', monospace;
+          background: #f3e5f5;
+          color: #7b1fa2;
+          padding: 5px 10px;
+          border-radius: 6px;
+          text-align: center;
+        }
+        
+        .days-list {
+          font-size: 0.85em;
+          color: #666;
+          text-align: center;
+        }
+        
+        .footer {
+          background: #f8f9fa;
+          padding: 30px;
+          text-align: center;
+          border-top: 1px solid #eee;
+          margin-top: 40px;
+        }
+        
+        .footer-content {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 30px;
+          margin-bottom: 20px;
+        }
+        
+        .footer-section h4 {
+          color: #2c3e50;
+          margin-bottom: 15px;
+          font-size: 1.1em;
+        }
+        
+        .footer-section p {
+          color: #666;
+          font-size: 0.9em;
+          line-height: 1.6;
+        }
+        
+        .generated-info {
+          background: white;
+          padding: 15px;
+          border-radius: 8px;
+          border-left: 4px solid #16a085;
+          margin-top: 20px;
+        }
+        
+        .watermark {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          opacity: 0.1;
+          font-size: 0.8em;
+          color: #666;
+          transform: rotate(-45deg);
+        }
+        
+        @media print {
+          body {
+            background: white;
+            padding: 0;
+          }
+          .container {
+            box-shadow: none;
+            border-radius: 0;
+          }
+          .watermark {
+            display: none;
+          }
+        }
+        
+        .day-separator {
+          height: 20px;
+          background: linear-gradient(90deg, transparent 0%, #16a085 50%, transparent 100%);
+          margin: 20px 0;
+          opacity: 0.3;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="header-content">
+            <div class="company-logo">FM</div>
+            <h1>FMDS Meeting Schedule</h1>
+            <div class="subtitle">First Management Development System</div>
+            <div class="meeting-info">
+              <strong>📅 Daily Meeting Time: ${meetingTime}</strong><br>
+              <span style="opacity: 0.8;">Comprehensive Weekly Schedule Overview</span>
+            </div>
+          </div>
         </div>
         
-        <table>
-          <thead>
-            <tr>
-              <th>Day</th>
-              <th>Activity</th>
-              <th>Duration (min)</th>
-              <th>Start Time</th>
-              <th>End Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${allDaysData
-              .map(
-                (dayData) => `
-              ${
-                dayData.segments.length > 0
-                  ? `
-                ${dayData.segments
+        <div class="content">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-number">${totalActivities}</div>
+              <div class="stat-label">Total Activities</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${activeDays}</div>
+              <div class="stat-label">Active Days</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${grandTotalDuration}</div>
+              <div class="stat-label">Total Minutes</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">${Math.round((grandTotalDuration / 60) * 10) / 10}</div>
+              <div class="stat-label">Total Hours</div>
+            </div>
+          </div>
+          
+          <div class="schedule-section">
+            <h2 class="section-title">📋 Weekly Schedule Breakdown</h2>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 15%;">📅 Day</th>
+                  <th style="width: 35%;">🎯 Activity</th>
+                  <th style="width: 15%;">⏱️ Duration</th>
+                  <th style="width: 20%;">🕐 Time Range</th>
+                  <th style="width: 15%;">📊 Frequency</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${allDaysData
                   .map(
-                    (segment, index) => `
-                  <tr>
-                    <td ${index === 0 ? 'class="day-header"' : ""}>${index === 0 ? dayData.day : ""}</td>
-                    <td>${segment.title}</td>
-                    <td>${segment.duration}</td>
-                    <td>${segment.startTime || "N/A"}</td>
-                    <td>${segment.endTime || "N/A"}</td>
-                  </tr>
+                    (dayData) => `
+                  ${
+                    dayData.segments.length > 0
+                      ? `
+                    ${dayData.segments
+                      .map(
+                        (segment, index) => `
+                      <tr>
+                        <td ${index === 0 ? 'class="day-header"' : ""}>${
+                          index === 0 ? `<strong>${dayData.day}</strong>` : ""
+                        }</td>
+                        <td class="activity-name">${segment.title}</td>
+                        <td><span class="duration">${segment.duration} min</span></td>
+                        <td class="time-range">${segment.startTime || "N/A"} - ${segment.endTime || "N/A"}</td>
+                        <td class="days-list">${segment.days.length} days/week</td>
+                      </tr>
+                    `,
+                      )
+                      .join("")}
+                    <tr class="total-row">
+                      <td></td>
+                      <td><strong>📊 ${dayData.day} Total</strong></td>
+                      <td><span class="duration">${dayData.totalDuration} min</span></td>
+                      <td style="text-align: center;"><strong>${Math.round((dayData.totalDuration / 60) * 10) / 10}h</strong></td>
+                      <td></td>
+                    </tr>
+                    <tr><td colspan="5" class="day-separator"></td></tr>
+                  `
+                      : `
+                    <tr>
+                      <td class="day-header"><strong>${dayData.day}</strong></td>
+                      <td class="no-meetings" colspan="4">🚫 No meetings scheduled</td>
+                    </tr>
+                    <tr><td colspan="5" class="day-separator"></td></tr>
+                  `
+                  }
                 `,
                   )
                   .join("")}
-                <tr class="total-row">
-                  <td></td>
-                  <td><strong>Total for ${dayData.day}</strong></td>
-                  <td><strong>${dayData.totalDuration}</strong></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              `
-                  : `
-                <tr>
-                  <td class="day-header">${dayData.day}</td>
-                  <td class="no-meetings" colspan="4">No meetings scheduled</td>
-                </tr>
-              `
-              }
-            `,
-              )
-              .join("")}
-          </tbody>
-        </table>
-        
-        <div style="margin-top: 30px;">
-          <h3>Summary</h3>
-          <p>Total Activities: ${segments.length}</p>
-          <p>Days with Meetings: ${allDaysData.filter((d) => d.segments.length > 0).length}</p>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </body>
-      </html>
-    `
+        
+        <div class="footer">
+          <div class="footer-content">
+            <div class="footer-section">
+              <h4>📈 Schedule Summary</h4>
+              <p>This comprehensive schedule covers all FMDS meeting activities across the work week, ensuring optimal time management and productivity tracking.</p>
+            </div>
+            <div class="footer-section">
+              <h4>🎯 Meeting Objectives</h4>
+              <p>Daily structured meetings designed to enhance team communication, track progress, and address operational challenges efficiently.</p>
+            </div>
+            <div class="footer-section">
+              <h4>📊 Performance Metrics</h4>
+              <p>Average meeting duration: ${Math.round(grandTotalDuration / totalActivities)} minutes per activity. Total weekly commitment: ${Math.round((grandTotalDuration / 60) * 10) / 10} hours.</p>
+            </div>
+          </div>
+          
+          <div class="generated-info">
+            <strong>📄 Document Information</strong><br>
+            Generated on: ${new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}<br>
+            Report Type: FMDS Weekly Meeting Schedule | Version: 2.0 | Status: Active
+          </div>
+        </div>
+      </div>
+      
+      <div class="watermark">FMDS Meeting Planner</div>
+    </body>
+    </html>
+  `
 
     // Create and download PDF
     const printWindow = window.open("", "_blank")
@@ -332,7 +667,7 @@ export default function MeetingTimer() {
       setTimeout(() => {
         printWindow.print()
         printWindow.close()
-      }, 250)
+      }, 500)
     }
   }
 
