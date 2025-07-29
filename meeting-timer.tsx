@@ -330,66 +330,12 @@ export default function MeetingTimer() {
       flex-direction: column;
     }
     
-    .header-section {
-      background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-      color: white;
-      padding: 20px 25px;
-      text-align: center;
-      margin-bottom: 15px;
-      border-radius: 12px;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      flex-shrink: 0;
-    }
-    
-    .company-logo {
-      width: 70px;
-      height: 70px;
-      background: linear-gradient(135deg, #e74c3c, #f39c12);
-      border-radius: 50%;
-      margin: 0 auto 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 800;
-      color: white;
-      border: 4px solid rgba(255,255,255,0.3);
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    .main-title { 
-      font-size: 2.8em;
-      margin-bottom: 10px;
-      font-weight: 700;
-      letter-spacing: -1px;
-    }
-    
-    .subtitle {
-      font-size: 1.3em;
-      opacity: 0.9;
-      margin-bottom: 18px;
-      font-weight: 300;
-    }
-    
-    .meeting-info {
-      background: rgba(255,255,255,0.15);
-      padding: 18px;
-      border-radius: 10px;
-      display: inline-block;
-      border: 2px solid rgba(255,255,255,0.2);
-      font-size: 1.1em;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    
     .table-container {
       flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 0;
+      margin-bottom: 0;
     }
     
     .table-title {
@@ -561,15 +507,6 @@ export default function MeetingTimer() {
 </head>
 <body>
   <div class="document-container">
-    <div class="header-section">
-      <div class="company-logo">FMDS</div>
-      <h1 class="main-title">Meeting Schedule - Complete Overview</h1>
-      <div class="subtitle">First Management Development System</div>
-      <div class="meeting-info">
-        <strong>📅 Daily Meeting Time: ${meetingTime}</strong><br>
-        A3 Professional Table Format | Database Connected
-      </div>
-    </div>
     
     
     
