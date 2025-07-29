@@ -264,15 +264,15 @@ export default function MeetingTimer() {
     try {
       const analytics = await meetingSegmentService.getAnalytics()
 
-      // Create professional A4/A3 optimized HTML content for PDF
+      // Create A3-optimized single table HTML content for PDF
       const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
-  <title>FMDS Meeting Schedule - Professional Report</title>
+  <title>FMDS Meeting Schedule - A3 Table</title>
   <meta charset="UTF-8">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     
     * {
       margin: 0;
@@ -281,35 +281,21 @@ export default function MeetingTimer() {
     }
     
     @page {
-      size: A4;
-      margin: 15mm 20mm;
+      size: A3 landscape;
+      margin: 10mm;
     }
     
     @media print {
       @page {
-        size: A4 portrait;
-        margin: 15mm 20mm;
+        size: A3 landscape;
+        margin: 10mm;
       }
       
       body {
-        font-size: 11pt;
-        line-height: 1.4;
+        font-size: 10pt;
+        line-height: 1.3;
         color: #000 !important;
         background: white !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      
-      .page-break {
-        page-break-before: always;
-      }
-      
-      .no-break {
-        page-break-inside: avoid;
-      }
-      
-      .header {
-        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%) !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -318,47 +304,50 @@ export default function MeetingTimer() {
         font-size: 9pt;
       }
       
-      .stats-grid {
-        grid-template-columns: repeat(4, 1fr) !important;
+      .header-section {
+        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
     }
     
     body { 
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      line-height: 1.5;
+      line-height: 1.4;
       color: #1a202c;
       background: #f8fafc;
-      font-size: 12pt;
+      font-size: 11pt;
     }
     
     .document-container {
-      max-width: 210mm;
+      width: 100%;
+      max-width: 420mm;
       margin: 0 auto;
       background: white;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      min-height: 297mm;
+      padding: 15mm;
     }
     
     .header-section {
       background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
       color: white;
-      padding: 30mm 20mm 20mm 20mm;
+      padding: 20mm 15mm;
       text-align: center;
-      position: relative;
+      margin-bottom: 15mm;
+      border-radius: 8px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
     .company-logo {
-      width: 60px;
-      height: 60px;
+      width: 50px;
+      height: 50px;
       background: linear-gradient(135deg, #e74c3c, #f39c12);
       border-radius: 50%;
-      margin: 0 auto 15px;
+      margin: 0 auto 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 800;
       color: white;
       border: 3px solid rgba(255,255,255,0.3);
@@ -367,112 +356,92 @@ export default function MeetingTimer() {
     }
     
     .main-title { 
-      font-size: 2.5em;
-      margin-bottom: 10px;
+      font-size: 2.2em;
+      margin-bottom: 8px;
       font-weight: 700;
       letter-spacing: -1px;
     }
     
     .subtitle {
-      font-size: 1.2em;
+      font-size: 1.1em;
       opacity: 0.9;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       font-weight: 300;
     }
     
-    .meeting-info-card { 
+    .meeting-info {
       background: rgba(255,255,255,0.15);
-      padding: 20px;
-      border-radius: 10px;
+      padding: 15px;
+      border-radius: 8px;
       display: inline-block;
       border: 1px solid rgba(255,255,255,0.2);
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
-    .content-area {
-      padding: 20mm;
-    }
-    
-    .stats-dashboard {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-    
-    .stat-card {
+    .stats-summary {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
       background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      padding: 20px 15px;
-      border-radius: 10px;
-      text-align: center;
-      border-left: 4px solid;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 15px;
+      border-radius: 8px;
+      border: 2px solid #3498db;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
-    .stat-card:nth-child(1) { border-left-color: #3498db; }
-    .stat-card:nth-child(2) { border-left-color: #e74c3c; }
-    .stat-card:nth-child(3) { border-left-color: #2ecc71; }
-    .stat-card:nth-child(4) { border-left-color: #f39c12; }
-    .stat-card:nth-child(5) { border-left-color: #9b59b6; }
-    .stat-card:nth-child(6) { border-left-color: #1abc9c; }
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+    }
     
     .stat-number {
-      font-size: 2.2em;
+      font-size: 1.8em;
       font-weight: 800;
-      margin-bottom: 8px;
       color: #2c3e50;
+      margin-bottom: 5px;
     }
     
     .stat-label {
       color: #64748b;
-      font-size: 0.85em;
+      font-size: 0.8em;
       text-transform: uppercase;
       letter-spacing: 1px;
-      font-weight: 600;
-    }
-    
-    .section-header {
-      font-size: 1.8em;
-      color: #2c3e50;
-      margin: 25px 0 20px 0;
-      padding-bottom: 10px;
-      border-bottom: 3px solid #3498db;
-      display: inline-block;
       font-weight: 600;
     }
     
     .main-table { 
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 25px;
       background: white;
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      font-size: 10pt;
+      font-size: 9pt;
+      margin-bottom: 20px;
     }
     
     .main-table th { 
       background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
       color: white;
       padding: 12px 8px;
-      text-align: left;
+      text-align: center;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      font-size: 9pt;
+      font-size: 8pt;
+      border: 1px solid #34495e;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
     .main-table td { 
       padding: 10px 8px;
-      border-bottom: 1px solid #e2e8f0;
+      border: 1px solid #e2e8f0;
       vertical-align: middle;
-      font-size: 9pt;
+      text-align: center;
+      font-size: 8pt;
     }
     
     .main-table tr:nth-child(even) {
@@ -481,26 +450,22 @@ export default function MeetingTimer() {
       print-color-adjust: exact;
     }
     
-    .main-table tr:last-child td {
-      border-bottom: none;
-    }
-    
     .activity-name {
       font-weight: 700;
       color: #2c3e50;
-      font-size: 10pt;
+      text-align: left;
+      font-size: 9pt;
     }
     
     .duration-badge {
       background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
       color: white;
-      padding: 4px 10px;
-      border-radius: 15px;
+      padding: 4px 8px;
+      border-radius: 12px;
       font-weight: 700;
-      text-align: center;
       display: inline-block;
-      min-width: 60px;
-      font-size: 8pt;
+      min-width: 50px;
+      font-size: 7pt;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -508,24 +473,41 @@ export default function MeetingTimer() {
     .time-badge {
       background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
       color: white;
-      padding: 4px 8px;
+      padding: 3px 6px;
       border-radius: 6px;
       font-family: 'Courier New', monospace;
       font-weight: 700;
-      font-size: 8pt;
+      font-size: 7pt;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
-    .days-badge {
-      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-      color: white;
-      padding: 3px 8px;
-      border-radius: 10px;
+    .day-cell {
       font-size: 7pt;
-      font-weight: 600;
+      line-height: 1.2;
+    }
+    
+    .day-yes {
+      background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+      color: white;
+      padding: 2px 4px;
+      border-radius: 4px;
       margin: 1px;
       display: inline-block;
+      font-weight: 600;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    .day-no {
+      background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+      color: white;
+      padding: 2px 4px;
+      border-radius: 4px;
+      margin: 1px;
+      display: inline-block;
+      font-weight: 600;
+      opacity: 0.6;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -533,260 +515,171 @@ export default function MeetingTimer() {
     .frequency-badge {
       background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
       color: white;
-      padding: 4px 10px;
+      padding: 4px 8px;
       border-radius: 10px;
       font-weight: 700;
+      font-size: 7pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    .weekly-minutes {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 7pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    .footer-info {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
       text-align: center;
       font-size: 8pt;
+      margin-top: 15px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     
-    .day-section {
-      margin-bottom: 20px;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      border-radius: 8px;
-      padding: 15px;
-      border-left: 4px solid #3498db;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    .day-header {
-      font-size: 1.3em;
+    .table-title {
+      font-size: 1.5em;
       color: #2c3e50;
       margin-bottom: 15px;
+      text-align: center;
       font-weight: 700;
-    }
-    
-    .summary-section {
-      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 8px;
-      margin-top: 20px;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-      margin-top: 15px;
-    }
-    
-    .summary-card {
-      background: rgba(255,255,255,0.1);
-      padding: 15px;
-      border-radius: 8px;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    .summary-card h4 {
-      color: #ecf0f1;
-      margin-bottom: 10px;
-      font-size: 1.1em;
-      border-bottom: 2px solid #3498db;
-      padding-bottom: 5px;
-      font-weight: 600;
-    }
-    
-    .summary-card p {
-      margin-bottom: 6px;
-      opacity: 0.9;
-      font-size: 0.9em;
-    }
-    
-    .footer-section {
-      background: #1a202c;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    .document-info {
-      background: rgba(255,255,255,0.1);
-      padding: 15px;
-      border-radius: 8px;
-      font-size: 0.9em;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    
-    .no-activities {
-      text-align: center;
-      color: #64748b;
-      font-style: italic;
-      padding: 20px;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      border-radius: 8px;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
     }
   </style>
 </head>
 <body>
   <div class="document-container">
-    <div class="header-section no-break">
+    <div class="header-section">
       <div class="company-logo">FMDS</div>
-      <h1 class="main-title">Meeting Schedule Report</h1>
+      <h1 class="main-title">Meeting Schedule - Complete Overview</h1>
       <div class="subtitle">First Management Development System</div>
-      <div class="meeting-info-card">
+      <div class="meeting-info">
         <strong>📅 Daily Meeting Time: ${meetingTime}</strong><br>
-        Professional Schedule Management Report
+        A3 Professional Table Format | Database Connected
       </div>
     </div>
     
-    <div class="content-area">
-      <div class="stats-dashboard no-break">
-        <div class="stat-card">
-          <div class="stat-number">${analytics.totalActivities}</div>
-          <div class="stat-label">Total Activities</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">${analytics.totalDuration}</div>
-          <div class="stat-label">Total Minutes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">${Math.round((analytics.totalDuration / 60) * 10) / 10}</div>
-          <div class="stat-label">Total Hours</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">${analytics.averageDuration}</div>
-          <div class="stat-label">Avg Duration</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">${analytics.activeDays}</div>
-          <div class="stat-label">Active Days</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">${analytics.mostBusyDay.totalDuration}</div>
-          <div class="stat-label">Peak Day Minutes</div>
-        </div>
+    <div class="stats-summary">
+      <div class="stat-item">
+        <div class="stat-number">${analytics.totalActivities}</div>
+        <div class="stat-label">Total Activities</div>
       </div>
-      
-      <h2 class="section-header">📋 Complete Activity Schedule</h2>
-      
-      <div class="no-break">
-        <table class="main-table">
-          <thead>
+      <div class="stat-item">
+        <div class="stat-number">${analytics.totalDuration}</div>
+        <div class="stat-label">Total Minutes</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">${Math.round((analytics.totalDuration / 60) * 10) / 10}</div>
+        <div class="stat-label">Total Hours</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">${analytics.averageDuration}</div>
+        <div class="stat-label">Avg Duration</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">${analytics.activeDays}</div>
+        <div class="stat-label">Active Days</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">${analytics.totalWeeklyMinutes}</div>
+        <div class="stat-label">Weekly Minutes</div>
+      </div>
+    </div>
+    
+    <h2 class="table-title">📋 Complete Meeting Schedule Matrix</h2>
+    
+    <table class="main-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">🎯 Activity Name</th>
+          <th style="width: 8%;">⏱️ Duration<br>(min)</th>
+          <th style="width: 12%;">🕐 Start Time</th>
+          <th style="width: 12%;">🕐 End Time</th>
+          <th style="width: 6%;">📅 SUN</th>
+          <th style="width: 6%;">📅 MON</th>
+          <th style="width: 6%;">📅 TUE</th>
+          <th style="width: 6%;">📅 WED</th>
+          <th style="width: 6%;">📅 THU</th>
+          <th style="width: 8%;">📊 Frequency<br>(days/week)</th>
+          <th style="width: 10%;">📈 Weekly<br>Minutes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${segments
+          .map((segment) => {
+            const weeklyMinutes = segment.duration * segment.days.length
+            const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
+
+            return `
             <tr>
-              <th style="width: 30%;">🎯 Activity Name</th>
-              <th style="width: 15%;">⏱️ Duration</th>
-              <th style="width: 20%;">🕐 Time Range</th>
-              <th style="width: 25%;">📅 Scheduled Days</th>
-              <th style="width: 10%;">📊 Frequency</th>
+              <td class="activity-name">${segment.title}</td>
+              <td><span class="duration-badge">${segment.duration}</span></td>
+              <td><span class="time-badge">${segment.startTime || "N/A"}</span></td>
+              <td><span class="time-badge">${segment.endTime || "N/A"}</span></td>
+              ${days
+                .map(
+                  (day) => `
+                <td class="day-cell">
+                  <span class="${segment.days.includes(day) ? "day-yes" : "day-no"}">
+                    ${segment.days.includes(day) ? "✓" : "✗"}
+                  </span>
+                </td>
+              `,
+                )
+                .join("")}
+              <td><span class="frequency-badge">${segment.days.length}/5</span></td>
+              <td><span class="weekly-minutes">${weeklyMinutes}</span></td>
             </tr>
-          </thead>
-          <tbody>
-            ${segments
-              .map(
-                (segment) => `
-              <tr>
-                <td class="activity-name">${segment.title}</td>
-                <td><span class="duration-badge">${segment.duration} min</span></td>
-                <td><span class="time-badge">${segment.startTime || "N/A"} - ${segment.endTime || "N/A"}</span></td>
-                <td>${segment.days.map((day) => `<span class="days-badge">${day.slice(0, 3)}</span>`).join(" ")}</td>
-                <td><span class="frequency-badge">${segment.days.length}/week</span></td>
-              </tr>
-            `,
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-      
-      <div class="page-break"></div>
-      
-      ${analytics.allDaysData
-        .map(
-          (dayData) => `
-        <div class="day-section no-break">
-          <div class="day-header">📅 ${dayData.day} Schedule</div>
-          ${
-            dayData.segments.length > 0
-              ? `
-            <table class="main-table">
-              <thead>
-                <tr>
-                  <th>Activity</th>
-                  <th>Duration</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${dayData.segments
-                  .map(
-                    (segment) => `
-                  <tr>
-                    <td class="activity-name">${segment.title}</td>
-                    <td><span class="duration-badge">${segment.duration} min</span></td>
-                    <td><span class="time-badge">${segment.startTime} - ${segment.endTime}</span></td>
-                  </tr>
-                `,
-                  )
-                  .join("")}
-                <tr style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); font-weight: bold;">
-                  <td>📊 ${dayData.day} Total</td>
-                  <td><span class="duration-badge" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">${dayData.totalDuration} min</span></td>
-                  <td><span class="time-badge" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">${Math.round((dayData.totalDuration / 60) * 10) / 10}h total</span></td>
-                </tr>
-              </tbody>
-            </table>
           `
-              : `<div class="no-activities">🚫 No meetings scheduled for ${dayData.day}</div>`
-          }
-        </div>
-      `,
-        )
-        .join("")}
-    </div>
+          })
+          .join("")}
+        
+        <!-- Summary Row -->
+        <tr style="background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%); font-weight: bold; border-top: 3px solid #2c3e50;">
+          <td class="activity-name" style="color: #2c3e50;">📊 TOTALS</td>
+          <td><span class="duration-badge" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">${analytics.totalDuration}</span></td>
+          <td colspan="2" style="color: #2c3e50; font-weight: 700;">SUMMARY</td>
+          ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
+            .map((day) => {
+              const dayTotal = segments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
+              return `<td><span class="day-yes" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">${dayTotal}m</span></td>`
+            })
+            .join("")}
+          <td><span class="frequency-badge" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">AVG: ${analytics.averageDuration}m</span></td>
+          <td><span class="weekly-minutes" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">${analytics.totalWeeklyMinutes}</span></td>
+        </tr>
+      </tbody>
+    </table>
     
-    <div class="summary-section no-break">
-      <h3 style="text-align: center; margin-bottom: 20px; font-size: 1.8em; font-weight: 300;">📊 Analytics Summary</h3>
-      <div class="summary-grid">
-        <div class="summary-card">
-          <h4>📈 Activity Distribution</h4>
-          <p><strong>Most Active Day:</strong> ${analytics.mostBusyDay.day} (${analytics.mostBusyDay.totalDuration} minutes)</p>
-          <p><strong>Total Weekly Commitment:</strong> ${analytics.totalWeeklyMinutes} minutes</p>
-          <p><strong>Daily Average:</strong> ${Math.round(analytics.totalWeeklyMinutes / 5)} minutes</p>
-          <p><strong>Coverage Rate:</strong> ${Math.round((analytics.activeDays / 5) * 100)}%</p>
-        </div>
-        <div class="summary-card">
-          <h4>⏰ Time Analysis</h4>
-          <p><strong>Shortest Activity:</strong> ${Math.min(...segments.map((s) => s.duration))} minutes</p>
-          <p><strong>Longest Activity:</strong> ${Math.max(...segments.map((s) => s.duration))} minutes</p>
-          <p><strong>Time Variance:</strong> ${Math.max(...segments.map((s) => s.duration)) - Math.min(...segments.map((s) => s.duration))} minutes</p>
-          <p><strong>Meeting Window:</strong> ${meetingTime}</p>
-        </div>
-      </div>
-    </div>
-    
-    <div class="footer-section">
-      <div class="document-info">
-        <strong>📄 Document Information</strong><br>
-        Generated: ${new Date().toLocaleDateString("en-US", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}<br>
-        Report: FMDS Professional Meeting Schedule | Version: 6.0 | Status: Active<br>
-        Format: A4 Professional Print | Classification: Internal Use | Database: Connected
-      </div>
+    <div class="footer-info">
+      <strong>📄 Document Information</strong> | 
+      Generated: ${new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })} | 
+      Report: FMDS A3 Schedule Matrix | Version: 6.0 | Format: A3 Landscape | Database: Connected | 
+      Activities: ${analytics.totalActivities} | Weekly Commitment: ${analytics.totalWeeklyMinutes} minutes
     </div>
   </div>
 </body>
 </html>
 `
 
-      // Create and download PDF with A4 optimization
+      // Create and download PDF with A3 optimization
       const printWindow = window.open("", "_blank")
       if (printWindow) {
         printWindow.document.write(htmlContent)
