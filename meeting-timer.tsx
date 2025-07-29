@@ -1187,7 +1187,7 @@ export default function MeetingTimer() {
                       <Download className="w-4 h-4 mr-2" />
                       Print PDF
                     </Button>
-                    <Button
+                    {/* <Button
                       onClick={() => {
                         downloadPDF()
                         setIsMobileMenuOpen(false)
@@ -1196,7 +1196,7 @@ export default function MeetingTimer() {
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Download PDF
-                    </Button>
+                    </Button> */}
                     <Button
                       onClick={() => {
                         loadSegments()
@@ -1231,13 +1231,13 @@ export default function MeetingTimer() {
                   <Download className="w-4 h-4 mr-2" />
                   Print PDF
                 </Button>
-                <Button
+                {/* <Button
                   onClick={downloadPDF}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download PDF
-                </Button>
+                </Button> */}
                 <Button
                   onClick={loadSegments}
                   variant="outline"
