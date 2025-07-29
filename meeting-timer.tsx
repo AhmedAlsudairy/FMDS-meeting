@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Play, Pause, Square, Edit, Plus, Download, Trash2 } from "lucide-react"
 
@@ -347,22 +346,92 @@ export default function MeetingTimer() {
           <p className="text-center text-muted-foreground">Daily meetings: {meetingTime}</p>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex-1 mr-4">
-              <Label htmlFor="day-select">Select Day:</Label>
-              <Select value={selectedDay} onValueChange={setSelectedDay}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {days.map((day) => (
-                    <SelectItem key={day} value={day}>
-                      {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Beautiful Calendar-Style Day Selector */}
+          <div className="mb-8">
+            <Label className="text-lg font-semibold text-gray-700 mb-4 block">Select Meeting Day</Label>
+            <div className="flex justify-center">
+              <div className="inline-flex bg-white rounded-xl shadow-lg border border-gray-200 p-2 gap-1">
+                {days.map((day, index) => {
+                  const isSelected = selectedDay === day
+                  const todaySegmentsCount = segments.filter((segment) => segment.days.includes(day)).length
+                  const totalDuration = segments
+                    .filter((segment) => segment.days.includes(day))
+                    .reduce((sum, seg) => sum + seg.duration, 0)
+
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedDay(day)}
+                      className={`
+                        relative flex flex-col items-center justify-center px-4 py-3 rounded-lg transition-all duration-200 min-w-[100px]
+                        ${
+                          isSelected
+                            ? "bg-green-500 text-white shadow-md transform scale-105"
+                            : "bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-700 hover:shadow-sm"
+                        }
+                      `}
+                    >
+                      {/* Day abbreviation */}
+                      <div
+                        className={`text-xs font-medium uppercase tracking-wide mb-1 ${isSelected ? "text-green-100" : "text-gray-500"}`}
+                      >
+                        {day.slice(0, 3)}
+                      </div>
+
+                      {/* Day number (simulated) */}
+                      <div className={`text-lg font-bold mb-1 ${isSelected ? "text-white" : "text-gray-800"}`}>
+                        {index + 1}
+                      </div>
+
+                      {/* Activity indicator */}
+                      {todaySegmentsCount > 0 && (
+                        <div className="flex flex-col items-center">
+                          <div
+                            className={`
+                            w-2 h-2 rounded-full mb-1
+                            ${isSelected ? "bg-white" : "bg-green-400"}
+                          `}
+                          ></div>
+                          <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-500"}`}>
+                            {todaySegmentsCount} activities
+                          </div>
+                          <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-500"}`}>
+                            {totalDuration}min
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No activities indicator */}
+                      {todaySegmentsCount === 0 && (
+                        <div className={`text-xs ${isSelected ? "text-green-100" : "text-gray-400"}`}>No meetings</div>
+                      )}
+
+                      {/* Selected day indicator */}
+                      {isSelected && (
+                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                          <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-500"></div>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+
+            {/* Selected day info */}
+            <div className="text-center mt-4">
+              <div className="inline-flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full border border-green-200">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-green-700 font-medium">
+                  {selectedDay} Schedule - {todaySegments.length} activities (
+                  {todaySegments.reduce((sum, seg) => sum + seg.duration, 0)} minutes total)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex justify-between items-center mb-6">
             <div className="flex gap-2">
               <Button onClick={() => setIsAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700">
                 <Plus className="w-4 h-4 mr-2" />
@@ -372,6 +441,18 @@ export default function MeetingTimer() {
                 <Download className="w-4 h-4 mr-2" />
                 Export PDF
               </Button>
+            </div>
+
+            {/* Quick stats */}
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <span>Total Activities: {segments.length}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                <span>Active Days: {days.filter((day) => segments.some((seg) => seg.days.includes(day))).length}</span>
+              </div>
             </div>
           </div>
 
