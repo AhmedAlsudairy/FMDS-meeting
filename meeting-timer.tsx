@@ -593,17 +593,15 @@ export default function MeetingTimer() {
   <table class="main-table">
     <thead>
       <tr>
-        <th style="width: 25%;">🎯 Activity Name</th>
-        <th style="width: 10%;">⏱️ Duration (min)</th>
-        <th style="width: 12%;">🕐 Start Time</th>
-        <th style="width: 12%;">🕐 End Time</th>
-        <th style="width: 8%;">📅 SUN<br><small style="font-size: 7pt;">(duration)</small></th>
-        <th style="width: 8%;">📅 MON<br><small style="font-size: 7pt;">(duration)</small></th>
-        <th style="width: 8%;">📅 TUE<br><small style="font-size: 7pt;">(duration)</small></th>
-        <th style="width: 8%;">📅 WED<br><small style="font-size: 7pt;">(duration)</small></th>
-        <th style="width: 8%;">📅 THU<br><small style="font-size: 7pt;">(duration)</small></th>
-        <th style="width: 12%;">📊 Frequency (days/week)</th>
-        <th style="width: 12%;">📈 Weekly Minutes</th>
+        <th style="width: 30%;">🎯 Activity Name</th>
+        <th style="width: 12%;">⏱️ Duration (min)</th>
+        <th style="width: 9%;"> SUN<br><small style="font-size: 7pt;">(time/duration)</small></th>
+        <th style="width: 9%;">📅 MON<br><small style="font-size: 7pt;">(time/duration)</small></th>
+        <th style="width: 9%;">📅 TUE<br><small style="font-size: 7pt;">(time/duration)</small></th>
+        <th style="width: 9%;">📅 WED<br><small style="font-size: 7pt;">(time/duration)</small></th>
+        <th style="width: 9%;">📅 THU<br><small style="font-size: 7pt;">(time/duration)</small></th>
+        <th style="width: 13%;">📊 Frequency (days/week)</th>
+        <th style="width: 13%;">📈 Weekly Minutes</th>
       </tr>
     </thead>
     <tbody>
@@ -615,8 +613,6 @@ export default function MeetingTimer() {
           <tr>
             <td class="activity-name">${segment.title}</td>
             <td><span class="duration-badge">${segment.duration}</span></td>
-            <td><span class="time-badge">${segment.startTime || "N/A"}</span></td>
-            <td><span class="time-badge">${segment.endTime || "N/A"}</span></td>
             ${days
               .map(
                 (day) => {
@@ -638,7 +634,8 @@ export default function MeetingTimer() {
                   <td>
                     <div class="day-yes" style="padding: 4px 6px;">
                       <div style="font-weight: bold; margin-bottom: 2px;">✓</div>
-                      <div style="font-size: 8pt; line-height: 1.1;">
+                      <div style="font-size: 7pt; line-height: 1.1;">
+                        <div style="margin-bottom: 1px;">${startTime}-${endTime}</div>
                         <div>${duration}min</div>
                       </div>
                     </div>
@@ -664,7 +661,6 @@ export default function MeetingTimer() {
       <tr class="summary-row">
         <td class="activity-name" style="color: #2c3e50;">📊 TOTALS</td>
         <td><span class="duration-badge" style="background: #2c3e50;">${analytics.totalDuration}</span></td>
-        <td colspan="2" style="color: #2c3e50; font-weight: bold;">SUMMARY</td>
         ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
           .map((day) => {
             const dayTotal = sortedSegments
