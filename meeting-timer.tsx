@@ -294,12 +294,19 @@ export default function MeetingTimer() {
     try {
       const analytics = await meetingSegmentService.getAnalytics()
 
-      // Create HTML content for PDF
+      // Sort segments by start time for ordered display
+      const sortedSegments = [...segments].sort((a, b) => {
+        const timeA = a.startTime || "00:00"
+        const timeB = b.startTime || "00:00"
+        return timeA.localeCompare(timeB)
+      })
+
+      // Create HTML content for PDF with proper PDF generation
       const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
-  <title>FMDS Meeting Schedule</title>
+  <title>Electrical Team FMDS Daily Schedule</title>
   <meta charset="UTF-8">
   <style>
     * {
@@ -308,23 +315,28 @@ export default function MeetingTimer() {
       box-sizing: border-box;
     }
     
+    @page {
+      size: A4 landscape;
+      margin: 15mm;
+    }
+    
     body { 
       font-family: Arial, sans-serif;
       line-height: 1.4;
       color: #000;
       background: white;
-      font-size: 12pt;
-      padding: 20px;
+      font-size: 11pt;
+      padding: 0;
     }
     
     .table-title {
-      font-size: 18pt;
+      font-size: 20pt;
       color: #2c3e50;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
       text-align: center;
       font-weight: bold;
-      border-bottom: 2px solid #3498db;
-      padding-bottom: 10px;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 15px;
     }
     
     .main-table { 
@@ -439,7 +451,7 @@ export default function MeetingTimer() {
   </style>
 </head>
 <body>
-  <h2 class="table-title">📋 Complete Meeting Schedule Matrix</h2>
+  <h2 class="table-title">⚡ Electrical Team FMDS Daily Schedule</h2>
   
   <table class="main-table">
     <thead>
@@ -458,7 +470,7 @@ export default function MeetingTimer() {
       </tr>
     </thead>
     <tbody>
-      ${segments
+      ${sortedSegments
         .map((segment) => {
           const weeklyMinutes = segment.duration * segment.days.length
           const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
@@ -494,7 +506,7 @@ export default function MeetingTimer() {
         <td colspan="2" style="color: #2c3e50; font-weight: bold;">SUMMARY</td>
         ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
           .map((day) => {
-            const dayTotal = segments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
+            const dayTotal = sortedSegments.filter((s) => s.days.includes(day)).reduce((sum, s) => sum + s.duration, 0)
             return `<td><span class="day-yes" style="background: #2c3e50;">${dayTotal}m</span></td>`
           })
           .join("")}
@@ -505,7 +517,7 @@ export default function MeetingTimer() {
   </table>
   
   <div class="footer-info">
-    <strong>📄 Document Information</strong> | 
+    <strong>📄 Electrical Team FMDS Daily Schedule</strong> | 
     Generated: ${new Date().toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -514,26 +526,29 @@ export default function MeetingTimer() {
       hour: "2-digit",
       minute: "2-digit",
     })} | 
-    Report: FMDS Schedule Matrix | Database: Connected | 
-    Activities: ${analytics.totalActivities} | Weekly Commitment: ${analytics.totalWeeklyMinutes} minutes
+    Database: Connected | Activities: ${analytics.totalActivities} | Weekly Commitment: ${analytics.totalWeeklyMinutes} minutes
   </div>
 </body>
 </html>`
 
-      // Create blob and download
-      const blob = new Blob([htmlContent], { type: "text/html" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `FMDS_Meeting_Schedule_${new Date().toISOString().split("T")[0]}.html`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      // Create a proper PDF using browser's print functionality
+      const printWindow = window.open("", "_blank", "width=1200,height=800")
+      if (printWindow) {
+        printWindow.document.write(htmlContent)
+        printWindow.document.close()
+
+        // Wait for content to load then trigger print dialog which can save as PDF
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.focus()
+            printWindow.print()
+          }, 500)
+        }
+      }
 
       toast({
-        title: "PDF Downloaded! 📄",
-        description: "Meeting schedule has been downloaded as HTML file. Open it in browser and print to PDF.",
+        title: "PDF Ready! 📄",
+        description: "Print dialog opened. Choose 'Save as PDF' in the print options to download as PDF file.",
       })
     } catch (error) {
       console.error("Error generating PDF:", error)
