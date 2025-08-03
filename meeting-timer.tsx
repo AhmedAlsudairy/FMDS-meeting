@@ -81,8 +81,9 @@ export default function MeetingTimer() {
 
   const generateQRCodeURL = () => {
     const directLink = generateQRCodeData()
-    // High resolution QR code: 600x600 with high error correction
-    return `https://api.qrserver.com/v1/create-qr-code/?size=600x600&ecc=H&data=${encodeURIComponent(directLink)}`
+    // Use a simpler, more reliable QR code service with proper encoding
+    // Alternative: use qr-server.com with better parameters
+    return `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=M&format=png&data=${encodeURIComponent(directLink)}`
   }
 
   const handleQRScan = (data: string) => {
@@ -2171,11 +2172,31 @@ export default function MeetingTimer() {
                   {/* QR Code Section */}
                   <div className="text-center space-y-4">
                     <div className="flex justify-center">
-                      <img
-                        src={generateQRCodeURL()}
-                        alt="QR Code"
-                        className="w-80 h-80 border-2 border-gray-200 rounded-lg shadow-md"
-                      />
+                      <div className="relative">
+                        <img
+                          src={generateQRCodeURL()}
+                          alt="QR Code"
+                          className="w-80 h-80 border-2 border-gray-200 rounded-lg shadow-md"
+                          onError={(e) => {
+                            // Fallback to a simpler QR code if the first one fails
+                            const target = e.target as HTMLImageElement
+                            const fallbackURL = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(generateQRCodeData())}`
+                            if (target.src !== fallbackURL) {
+                              target.src = fallbackURL
+                            }
+                          }}
+                          onLoad={() => {
+                            console.log('QR Code loaded successfully')
+                          }}
+                        />
+                        {/* Loading placeholder */}
+                        <div className="absolute inset-0 bg-gray-100 border-2 border-gray-200 rounded-lg flex items-center justify-center text-gray-500 -z-10">
+                          <div className="text-center">
+                            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                            <p className="text-sm">Generating QR Code...</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div className="text-sm text-gray-600">
                       <p className="font-medium">Scan this QR code to view the schedule</p>
@@ -2212,6 +2233,21 @@ export default function MeetingTimer() {
                         className="flex-1"
                       >
                         Open Link
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          console.log('QR Code URL:', generateQRCodeURL())
+                          console.log('QR Code Data:', generateQRCodeData())
+                          toast({
+                            title: "Debug Info",
+                            description: "Check console for QR code details",
+                          })
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="px-3"
+                      >
+                        🐛 Debug
                       </Button>
                     </div>
                   </div>
