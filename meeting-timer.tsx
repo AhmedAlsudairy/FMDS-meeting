@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Play, Pause, Square, Edit, Plus, Download, Trash2, Loader2, RefreshCw, Menu, X } from "lucide-react"
+import { Play, Pause, Square, Edit, Plus, Download, Trash2, Loader2, RefreshCw, Menu, X, QrCode, Camera } from "lucide-react"
 import { meetingSegmentService, type MeetingSegment, type DaySchedule } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 
@@ -42,10 +42,80 @@ export default function MeetingTimer() {
   })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showDaySchedules, setShowDaySchedules] = useState(false)
+  const [showQRCode, setShowQRCode] = useState(false)
+  const [showQRScanner, setShowQRScanner] = useState(false)
+  const [scannedData, setScannedData] = useState<any>(null)
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const { toast } = useToast()
+
+  // QR Code functionality
+  const generateQRCodeData = () => {
+    const qrData = {
+      day: selectedDay,
+      date: new Date().toISOString().split('T')[0],
+      activities: todaySegments.map(segment => {
+        const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+        return {
+          id: segment.id,
+          title: segment.title,
+          duration: daySchedule ? daySchedule.duration : segment.duration,
+          startTime: daySchedule ? daySchedule.startTime : segment.startTime,
+          endTime: daySchedule ? daySchedule.endTime : segment.endTime,
+          days: segment.days
+        }
+      }),
+      totalDuration: todaySegments.reduce((sum, seg) => {
+        const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+        return sum + (daySchedule ? daySchedule.duration : seg.duration)
+      }, 0)
+    }
+    
+    // Create a direct link that 3rd party QR scanners can open
+    const encodedData = encodeURIComponent(JSON.stringify(qrData))
+    const directLink = `${window.location.origin}${window.location.pathname}?schedule=${encodedData}`
+    
+    return directLink
+  }
+
+  const generateQRCodeURL = () => {
+    const directLink = generateQRCodeData()
+    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(directLink)}`
+  }
+
+  const handleQRScan = (data: string) => {
+    try {
+      let parsedData
+      
+      // Check if it's a URL with schedule parameter
+      if (data.includes('schedule=')) {
+        const url = new URL(data)
+        const scheduleParam = url.searchParams.get('schedule')
+        if (scheduleParam) {
+          parsedData = JSON.parse(decodeURIComponent(scheduleParam))
+        } else {
+          throw new Error('No schedule parameter found in URL')
+        }
+      } else {
+        // Try to parse as direct JSON data
+        parsedData = JSON.parse(data)
+      }
+      
+      setScannedData(parsedData)
+      setShowQRScanner(false)
+      toast({
+        title: "QR Code Scanned Successfully! 📱",
+        description: `Found schedule for ${parsedData.day} with ${parsedData.activities.length} activities`,
+      })
+    } catch (error) {
+      toast({
+        title: "Invalid QR Code",
+        description: "The scanned QR code doesn't contain valid schedule data.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
   const meetingTime = "7:10 AM - 7:50 AM"
@@ -221,6 +291,34 @@ export default function MeetingTimer() {
       }
     }
   }, [timer.isRunning, timer.currentTime])
+
+  // Handle URL parameters for direct QR code links
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const scheduleParam = urlParams.get('schedule')
+    
+    if (scheduleParam) {
+      try {
+        const scheduleData = JSON.parse(decodeURIComponent(scheduleParam))
+        setScannedData(scheduleData)
+        setSelectedDay(scheduleData.day)
+        
+        // Clear the URL parameter to keep URL clean
+        window.history.replaceState({}, document.title, window.location.pathname)
+        
+        toast({
+          title: "Schedule Loaded from QR Code! 📱",
+          description: `Showing ${scheduleData.day} schedule with ${scheduleData.activities.length} activities`,
+        })
+      } catch (error) {
+        toast({
+          title: "Invalid Schedule Link",
+          description: "The schedule data in the URL is not valid.",
+          variant: "destructive",
+        })
+      }
+    }
+  }, [])
 
   const startTimer = (segmentIndex: number) => {
     const segment = todaySegments[segmentIndex]
@@ -1330,6 +1428,28 @@ export default function MeetingTimer() {
                       <Download className="w-4 h-4 mr-2" />
                       Print PDF
                     </Button>
+                    <Button
+                      onClick={() => {
+                        setShowQRCode(true)
+                        setIsMobileMenuOpen(false)
+                      }}
+                      variant="outline"
+                      className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
+                    >
+                      <QrCode className="w-4 h-4 mr-2" />
+                      Show QR Code
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowQRScanner(true)
+                        setIsMobileMenuOpen(false)
+                      }}
+                      variant="outline"
+                      className="w-full border-purple-500 text-purple-700 hover:bg-purple-50"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Scan QR Code
+                    </Button>
                     {/* <Button
                       onClick={() => {
                         downloadPDF()
@@ -1378,6 +1498,22 @@ export default function MeetingTimer() {
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Print PDF
+                </Button>
+                <Button
+                  onClick={() => setShowQRCode(true)}
+                  variant="outline"
+                  className="border-blue-500 text-blue-700 hover:bg-blue-50 bg-transparent"
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  QR Code
+                </Button>
+                <Button
+                  onClick={() => setShowQRScanner(true)}
+                  variant="outline"
+                  className="border-purple-500 text-purple-700 hover:bg-purple-50 bg-transparent"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Scan QR
                 </Button>
                 {/* <Button
                   onClick={downloadPDF}
@@ -2013,6 +2149,232 @@ export default function MeetingTimer() {
                 </table>
               </div>
             </div>
+
+            {/* QR Code Display Modal */}
+            {showQRCode && (
+              <Card className="border-2 border-blue-200 shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-blue-800 text-lg sm:text-xl">
+                    QR Code for {selectedDay} Schedule
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowQRCode(false)}
+                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <img
+                      src={generateQRCodeURL()}
+                      alt="QR Code"
+                      className="w-64 h-64 border-2 border-gray-200 rounded-lg"
+                    />
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <p className="font-medium">Scan this QR code to view the schedule</p>
+                    <p>{selectedDay} - {todaySegments.length} activities</p>
+                    <p>Total Duration: {todaySegments.reduce((sum, seg) => {
+                      const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+                      return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                    }, 0)} minutes</p>
+                    <p className="text-xs text-blue-600 mt-2">
+                      💡 Opens directly in any QR scanner app
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generateQRCodeData())
+                        toast({
+                          title: "Link Copied! 📋",
+                          description: "Direct schedule link copied to clipboard",
+                        })
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Copy Link
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        window.open(generateQRCodeData(), '_blank')
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Open Link
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* QR Scanner Modal */}
+            {showQRScanner && (
+              <Card className="border-2 border-purple-200 shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-purple-800 text-lg sm:text-xl">
+                    QR Code Scanner
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowQRScanner(false)}
+                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center p-6 border-2 border-dashed border-purple-300 rounded-lg">
+                    <Camera className="w-12 h-12 mx-auto mb-4 text-purple-500" />
+                    <p className="text-purple-700 font-medium mb-2">Camera Scanner</p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Point your camera at a QR code to scan schedule data
+                    </p>
+                    <Button
+                      onClick={() => {
+                        // For demo purposes, simulate scanning
+                        const demoData = {
+                          day: "Monday",
+                          date: "2025-08-03",
+                          activities: [
+                            {
+                              id: "demo-1",
+                              title: "Demo Meeting",
+                              duration: 30,
+                              startTime: "09:00",
+                              endTime: "09:30",
+                              days: ["Monday"]
+                            }
+                          ],
+                          totalDuration: 30
+                        }
+                        handleQRScan(JSON.stringify(demoData))
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Demo Scan
+                    </Button>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-2">Or paste QR data manually:</p>
+                    <textarea
+                      placeholder="Paste QR code data here..."
+                      className="w-full h-20 p-2 border border-gray-300 rounded text-xs"
+                      onChange={(e) => {
+                        if (e.target.value.trim()) {
+                          handleQRScan(e.target.value.trim())
+                        }
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Scanned QR Data Preview */}
+            {scannedData && (
+              <Card className="border-2 border-green-200 shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-green-800 text-lg sm:text-xl">
+                    Scanned Schedule: {scannedData.day}
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setScannedData(null)}
+                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 bg-green-50 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-800">{scannedData.day}</div>
+                        <div className="text-xs text-green-600">Day</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-800">{scannedData.activities.length}</div>
+                        <div className="text-xs text-green-600">Activities</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-800">{scannedData.totalDuration}min</div>
+                        <div className="text-xs text-green-600">Total Duration</div>
+                      </div>
+                    </div>
+
+                    {/* Scanned Activities Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden">
+                        <thead>
+                          <tr className="bg-green-100">
+                            <th className="border border-gray-300 p-2 text-left text-sm font-semibold">Activity</th>
+                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Duration</th>
+                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Time</th>
+                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Days</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {scannedData.activities.map((activity: any, index: number) => (
+                            <tr key={index} className="hover:bg-green-50 transition-colors">
+                              <td className="border border-gray-300 p-2 font-medium">{activity.title}</td>
+                              <td className="border border-gray-300 p-2 text-center">{activity.duration}min</td>
+                              <td className="border border-gray-300 p-2 text-center">
+                                {activity.startTime} - {activity.endTime}
+                              </td>
+                              <td className="border border-gray-300 p-2 text-center text-sm">
+                                {activity.days.join(", ")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          // Apply scanned schedule to current day
+                          setSelectedDay(scannedData.day)
+                          setScannedData(null)
+                          toast({
+                            title: "Schedule Applied! ✅",
+                            description: `Switched to ${scannedData.day} schedule`,
+                          })
+                        }}
+                        className="bg-green-600 hover:bg-green-700 flex-1"
+                      >
+                        Apply Schedule
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(scannedData, null, 2))
+                          toast({
+                            title: "Data Copied! 📋",
+                            description: "Scanned schedule data copied to clipboard",
+                          })
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Copy Data
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </CardContent>
         </Card>
       </div>
