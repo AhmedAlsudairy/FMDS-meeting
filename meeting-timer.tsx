@@ -52,53 +52,28 @@ export default function MeetingTimer() {
 
   // QR Code functionality
   const generateQRCodeData = () => {
-    // Create a comprehensive schedule table data for QR code
-    const scheduleTable = {
-      title: `${selectedDay} Meeting Schedule`,
-      date: new Date().toISOString().split('T')[0],
+    const qrData = {
       day: selectedDay,
-      meetingTime: "7:10 AM - 7:50 AM",
-      totalActivities: todaySegments.length,
-      totalDuration: todaySegments.reduce((sum, seg) => {
-        const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
-        return sum + (daySchedule ? daySchedule.duration : seg.duration)
-      }, 0),
-      activities: todaySegments.map((segment, index) => {
+      date: new Date().toISOString().split('T')[0],
+      activities: todaySegments.map(segment => {
         const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
         return {
-          order: index + 1,
           id: segment.id,
           title: segment.title,
           duration: daySchedule ? daySchedule.duration : segment.duration,
           startTime: daySchedule ? daySchedule.startTime : segment.startTime,
           endTime: daySchedule ? daySchedule.endTime : segment.endTime,
-          allDays: segment.days.join(", "),
-          isCurrentDay: true
+          days: segment.days
         }
       }),
-      summary: {
-        shortestActivity: Math.min(...todaySegments.map(seg => {
-          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
-          return daySchedule ? daySchedule.duration : seg.duration
-        })),
-        longestActivity: Math.max(...todaySegments.map(seg => {
-          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
-          return daySchedule ? daySchedule.duration : seg.duration
-        })),
-        averageDuration: Math.round(todaySegments.reduce((sum, seg) => {
-          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
-          return sum + (daySchedule ? daySchedule.duration : seg.duration)
-        }, 0) / todaySegments.length)
-      },
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        source: "FMDS Meeting Timer",
-        version: "2.0"
-      }
+      totalDuration: todaySegments.reduce((sum, seg) => {
+        const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+        return sum + (daySchedule ? daySchedule.duration : seg.duration)
+      }, 0)
     }
     
     // Create a direct link that 3rd party QR scanners can open
-    const encodedData = encodeURIComponent(JSON.stringify(scheduleTable))
+    const encodedData = encodeURIComponent(JSON.stringify(qrData))
     const directLink = `${window.location.origin}${window.location.pathname}?schedule=${encodedData}`
     
     return directLink
@@ -106,8 +81,8 @@ export default function MeetingTimer() {
 
   const generateQRCodeURL = () => {
     const directLink = generateQRCodeData()
-    // High resolution QR code with better error correction
-    return `https://api.qrserver.com/v1/create-qr-code/?size=500x500&ecc=H&margin=10&data=${encodeURIComponent(directLink)}`
+    // High resolution QR code: 600x600 with high error correction
+    return `https://api.qrserver.com/v1/create-qr-code/?size=600x600&ecc=H&data=${encodeURIComponent(directLink)}`
   }
 
   const handleQRScan = (data: string) => {
@@ -128,39 +103,11 @@ export default function MeetingTimer() {
         parsedData = JSON.parse(data)
       }
       
-      // Handle both new comprehensive format and old format
-      let formattedData
-      if (parsedData.metadata && parsedData.activities) {
-        // New comprehensive format
-        formattedData = {
-          day: parsedData.day,
-          date: parsedData.date,
-          title: parsedData.title,
-          meetingTime: parsedData.meetingTime,
-          activities: parsedData.activities,
-          totalDuration: parsedData.totalDuration,
-          summary: parsedData.summary,
-          metadata: parsedData.metadata
-        }
-      } else {
-        // Old format - convert to new format
-        formattedData = {
-          day: parsedData.day,
-          date: parsedData.date,
-          title: `${parsedData.day} Meeting Schedule`,
-          activities: parsedData.activities?.map((activity, index) => ({
-            order: index + 1,
-            ...activity
-          })) || [],
-          totalDuration: parsedData.totalDuration || 0
-        }
-      }
-      
-      setScannedData(formattedData)
+      setScannedData(parsedData)
       setShowQRScanner(false)
       toast({
         title: "QR Code Scanned Successfully! 📱",
-        description: `Found ${formattedData.title || formattedData.day + ' schedule'} with ${formattedData.activities.length} activities`,
+        description: `Found schedule for ${parsedData.day} with ${parsedData.activities.length} activities`,
       })
     } catch (error) {
       toast({
@@ -2220,62 +2167,195 @@ export default function MeetingTimer() {
                     <X className="h-4 w-4" />
                   </Button>
                 </CardHeader>
-                <CardContent className="text-center space-y-4">
-                  <div className="flex justify-center">
-                    <img
-                      src={generateQRCodeURL()}
-                      alt="QR Code for Schedule"
-                      className="w-80 h-80 border-2 border-gray-200 rounded-lg shadow-md"
-                      style={{ imageRendering: 'crisp-edges' }}
-                    />
+                <CardContent className="space-y-6">
+                  {/* QR Code Section */}
+                  <div className="text-center space-y-4">
+                    <div className="flex justify-center">
+                      <img
+                        src={generateQRCodeURL()}
+                        alt="QR Code"
+                        className="w-80 h-80 border-2 border-gray-200 rounded-lg shadow-md"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <p className="font-medium">Scan this QR code to view the schedule</p>
+                      <p>{selectedDay} - {todaySegments.length} activities</p>
+                      <p>Total Duration: {todaySegments.reduce((sum, seg) => {
+                        const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+                        return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                      }, 0)} minutes</p>
+                      <p className="text-xs text-blue-600 mt-2">
+                        💡 Opens directly in any QR scanner app
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          navigator.clipboard.writeText(generateQRCodeData())
+                          toast({
+                            title: "Link Copied! 📋",
+                            description: "Direct schedule link copied to clipboard",
+                          })
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        Copy Link
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          window.open(generateQRCodeData(), '_blank')
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        Open Link
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p className="font-medium text-lg text-gray-800">📅 {selectedDay} Meeting Schedule</p>
-                    <div className="grid grid-cols-2 gap-4 mt-3 p-3 bg-gray-50 rounded-lg">
+
+                  {/* Full Schedule Table Preview */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                      📋 Schedule Preview - {selectedDay}
+                    </h3>
+                    
+                    {/* Header Info */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg mb-4">
                       <div className="text-center">
-                        <div className="font-bold text-blue-600">{todaySegments.length}</div>
-                        <div className="text-xs">Activities</div>
+                        <div className="text-2xl font-bold text-blue-800">{selectedDay}</div>
+                        <div className="text-sm text-blue-600">Meeting Day</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-green-600">{todaySegments.reduce((sum, seg) => {
-                          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
-                          return sum + (daySchedule ? daySchedule.duration : seg.duration)
-                        }, 0)} min</div>
-                        <div className="text-xs">Total Duration</div>
+                        <div className="text-2xl font-bold text-blue-800">{todaySegments.length}</div>
+                        <div className="text-sm text-blue-600">Total Activities</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-800">
+                          {todaySegments.reduce((sum, seg) => {
+                            const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+                            return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                          }, 0)}min
+                        </div>
+                        <div className="text-sm text-blue-600">Total Duration</div>
                       </div>
                     </div>
-                    <p className="text-xs text-blue-600 mt-3 font-medium">
-                      🎯 High Resolution QR Code - Scan with any device
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Contains complete schedule table with all activity details
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        navigator.clipboard.writeText(generateQRCodeData())
-                        toast({
-                          title: "Link Copied! 📋",
-                          description: "Direct schedule link copied to clipboard",
-                        })
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                    >
-                      Copy Link
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        window.open(generateQRCodeData(), '_blank')
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                    >
-                      Open Link
-                    </Button>
+
+                    {/* Full Activities Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm">
+                        <thead>
+                          <tr className="bg-blue-100">
+                            <th className="border border-gray-300 p-3 text-left text-sm font-semibold">#</th>
+                            <th className="border border-gray-300 p-3 text-left text-sm font-semibold">Activity Name</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Duration</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Start Time</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">End Time</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Days</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {todaySegments.length > 0 ? (
+                            todaySegments.map((segment, index) => {
+                              const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
+                              return (
+                                <tr key={segment.id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                  <td className="border border-gray-300 p-3 text-center font-medium text-blue-600">
+                                    {index + 1}
+                                  </td>
+                                  <td className="border border-gray-300 p-3 font-medium">
+                                    {segment.title}
+                                  </td>
+                                  <td className="border border-gray-300 p-3 text-center">
+                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+                                      {daySchedule ? daySchedule.duration : segment.duration} min
+                                    </span>
+                                  </td>
+                                  <td className="border border-gray-300 p-3 text-center font-mono">
+                                    {daySchedule ? daySchedule.startTime : segment.startTime}
+                                  </td>
+                                  <td className="border border-gray-300 p-3 text-center font-mono">
+                                    {daySchedule ? daySchedule.endTime : segment.endTime}
+                                  </td>
+                                  <td className="border border-gray-300 p-3 text-center text-sm">
+                                    <div className="flex flex-wrap gap-1 justify-center">
+                                      {segment.days.map(day => (
+                                        <span 
+                                          key={day} 
+                                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                            day === selectedDay 
+                                              ? 'bg-green-100 text-green-800' 
+                                              : 'bg-gray-100 text-gray-600'
+                                          }`}
+                                        >
+                                          {day.slice(0, 3)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={6} className="border border-gray-300 p-6 text-center text-gray-500">
+                                No activities scheduled for {selectedDay}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-blue-50">
+                            <td colSpan={2} className="border border-gray-300 p-3 font-semibold text-blue-800">
+                              Total Meeting Time:
+                            </td>
+                            <td className="border border-gray-300 p-3 text-center">
+                              <span className="bg-blue-200 text-blue-900 px-3 py-1 rounded-full font-bold">
+                                {todaySegments.reduce((sum, seg) => {
+                                  const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+                                  return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                                }, 0)} min
+                              </span>
+                            </td>
+                            <td className="border border-gray-300 p-3 text-center font-mono text-blue-800">
+                              {todaySegments.length > 0 ? (
+                                (() => {
+                                  const firstSegment = todaySegments[0]
+                                  const daySchedule = firstSegment.daySchedules?.find(ds => ds.day === selectedDay)
+                                  return daySchedule ? daySchedule.startTime : firstSegment.startTime
+                                })()
+                              ) : '--:--'}
+                            </td>
+                            <td className="border border-gray-300 p-3 text-center font-mono text-blue-800">
+                              {todaySegments.length > 0 ? (
+                                (() => {
+                                  const lastSegment = todaySegments[todaySegments.length - 1]
+                                  const daySchedule = lastSegment.daySchedules?.find(ds => ds.day === selectedDay)
+                                  return daySchedule ? daySchedule.endTime : lastSegment.endTime
+                                })()
+                              ) : '--:--'}
+                            </td>
+                            <td className="border border-gray-300 p-3 text-center">
+                              <span className="text-blue-800 font-medium">
+                                {todaySegments.length} activities
+                              </span>
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+
+                    {/* Footer Info */}
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg text-center">
+                      <p className="text-sm text-gray-600">
+                        📅 Generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Scan the QR code above to access this schedule on any device
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -2352,7 +2432,7 @@ export default function MeetingTimer() {
               <Card className="border-2 border-green-200 shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <CardTitle className="text-green-800 text-lg sm:text-xl">
-                    📋 {scannedData.title || `${scannedData.day} Schedule`}
+                    Scanned Schedule: {scannedData.day}
                   </CardTitle>
                   <Button
                     variant="ghost"
@@ -2365,112 +2445,48 @@ export default function MeetingTimer() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* Schedule Header Info */}
-                    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border">
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
-                        <div>
-                          <div className="text-lg font-bold text-green-800">{scannedData.day}</div>
-                          <div className="text-xs text-gray-600">Meeting Day</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-blue-800">{scannedData.activities?.length || 0}</div>
-                          <div className="text-xs text-gray-600">Activities</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-purple-800">{scannedData.totalDuration || 0}min</div>
-                          <div className="text-xs text-gray-600">Total Duration</div>
-                        </div>
-                        <div>
-                          <div className="text-lg font-bold text-orange-800">{scannedData.meetingTime || "7:10-7:50 AM"}</div>
-                          <div className="text-xs text-gray-600">Meeting Time</div>
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 bg-green-50 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-800">{scannedData.day}</div>
+                        <div className="text-xs text-green-600">Day</div>
                       </div>
-                      
-                      {/* Summary Stats */}
-                      {scannedData.summary && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                            <div>
-                              <span className="text-gray-600">Shortest:</span> 
-                              <span className="font-medium ml-1">{scannedData.summary.shortestActivity}min</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Average:</span> 
-                              <span className="font-medium ml-1">{scannedData.summary.averageDuration}min</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Longest:</span> 
-                              <span className="font-medium ml-1">{scannedData.summary.longestActivity}min</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-800">{scannedData.activities.length}</div>
+                        <div className="text-xs text-green-600">Activities</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-800">{scannedData.totalDuration}min</div>
+                        <div className="text-xs text-green-600">Total Duration</div>
+                      </div>
                     </div>
 
-                    {/* Comprehensive Activities Table */}
+                    {/* Scanned Activities Table */}
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm">
+                      <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden">
                         <thead>
-                          <tr className="bg-gradient-to-r from-green-100 to-blue-100">
-                            <th className="border border-gray-300 p-3 text-left text-sm font-semibold">#</th>
-                            <th className="border border-gray-300 p-3 text-left text-sm font-semibold">Activity Title</th>
-                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Duration</th>
-                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Start Time</th>
-                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">End Time</th>
-                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">All Days</th>
+                          <tr className="bg-green-100">
+                            <th className="border border-gray-300 p-2 text-left text-sm font-semibold">Activity</th>
+                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Duration</th>
+                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Time</th>
+                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Days</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {scannedData.activities?.map((activity: any, index: number) => (
-                            <tr key={activity.id || index} className="hover:bg-green-50 transition-colors">
-                              <td className="border border-gray-300 p-3 text-center font-medium text-gray-600">
-                                {activity.order || index + 1}
+                          {scannedData.activities.map((activity: any, index: number) => (
+                            <tr key={index} className="hover:bg-green-50 transition-colors">
+                              <td className="border border-gray-300 p-2 font-medium">{activity.title}</td>
+                              <td className="border border-gray-300 p-2 text-center">{activity.duration}min</td>
+                              <td className="border border-gray-300 p-2 text-center">
+                                {activity.startTime} - {activity.endTime}
                               </td>
-                              <td className="border border-gray-300 p-3 font-medium text-gray-900">
-                                {activity.title}
-                              </td>
-                              <td className="border border-gray-300 p-3 text-center">
-                                <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-                                  {activity.duration}min
-                                </span>
-                              </td>
-                              <td className="border border-gray-300 p-3 text-center font-mono text-sm">
-                                {activity.startTime}
-                              </td>
-                              <td className="border border-gray-300 p-3 text-center font-mono text-sm">
-                                {activity.endTime}
-                              </td>
-                              <td className="border border-gray-300 p-3 text-center text-sm text-gray-600">
-                                {activity.allDays || (activity.days?.join(", ")) || "N/A"}
+                              <td className="border border-gray-300 p-2 text-center text-sm">
+                                {activity.days.join(", ")}
                               </td>
                             </tr>
-                          )) || (
-                            <tr>
-                              <td colSpan={6} className="border border-gray-300 p-6 text-center text-gray-500">
-                                No activities found in scanned data
-                              </td>
-                            </tr>
-                          )}
+                          ))}
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Metadata */}
-                    {scannedData.metadata && (
-                      <div className="p-3 bg-gray-50 rounded-lg border text-xs text-gray-600">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <div>
-                            <span className="font-medium">Generated:</span> {new Date(scannedData.metadata.generatedAt).toLocaleString()}
-                          </div>
-                          <div>
-                            <span className="font-medium">Source:</span> {scannedData.metadata.source}
-                          </div>
-                          <div>
-                            <span className="font-medium">Version:</span> {scannedData.metadata.version}
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     <div className="flex gap-2">
                       <Button
