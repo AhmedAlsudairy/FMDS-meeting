@@ -52,28 +52,53 @@ export default function MeetingTimer() {
 
   // QR Code functionality
   const generateQRCodeData = () => {
-    const qrData = {
-      day: selectedDay,
+    // Create a comprehensive schedule table data for QR code
+    const scheduleTable = {
+      title: `${selectedDay} Meeting Schedule`,
       date: new Date().toISOString().split('T')[0],
-      activities: todaySegments.map(segment => {
+      day: selectedDay,
+      meetingTime: "7:10 AM - 7:50 AM",
+      totalActivities: todaySegments.length,
+      totalDuration: todaySegments.reduce((sum, seg) => {
+        const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+        return sum + (daySchedule ? daySchedule.duration : seg.duration)
+      }, 0),
+      activities: todaySegments.map((segment, index) => {
         const daySchedule = segment.daySchedules?.find(ds => ds.day === selectedDay)
         return {
+          order: index + 1,
           id: segment.id,
           title: segment.title,
           duration: daySchedule ? daySchedule.duration : segment.duration,
           startTime: daySchedule ? daySchedule.startTime : segment.startTime,
           endTime: daySchedule ? daySchedule.endTime : segment.endTime,
-          days: segment.days
+          allDays: segment.days.join(", "),
+          isCurrentDay: true
         }
       }),
-      totalDuration: todaySegments.reduce((sum, seg) => {
-        const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
-        return sum + (daySchedule ? daySchedule.duration : seg.duration)
-      }, 0)
+      summary: {
+        shortestActivity: Math.min(...todaySegments.map(seg => {
+          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+          return daySchedule ? daySchedule.duration : seg.duration
+        })),
+        longestActivity: Math.max(...todaySegments.map(seg => {
+          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+          return daySchedule ? daySchedule.duration : seg.duration
+        })),
+        averageDuration: Math.round(todaySegments.reduce((sum, seg) => {
+          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+          return sum + (daySchedule ? daySchedule.duration : seg.duration)
+        }, 0) / todaySegments.length)
+      },
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        source: "FMDS Meeting Timer",
+        version: "2.0"
+      }
     }
     
     // Create a direct link that 3rd party QR scanners can open
-    const encodedData = encodeURIComponent(JSON.stringify(qrData))
+    const encodedData = encodeURIComponent(JSON.stringify(scheduleTable))
     const directLink = `${window.location.origin}${window.location.pathname}?schedule=${encodedData}`
     
     return directLink
@@ -81,7 +106,8 @@ export default function MeetingTimer() {
 
   const generateQRCodeURL = () => {
     const directLink = generateQRCodeData()
-    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(directLink)}`
+    // High resolution QR code with better error correction
+    return `https://api.qrserver.com/v1/create-qr-code/?size=500x500&ecc=H&margin=10&data=${encodeURIComponent(directLink)}`
   }
 
   const handleQRScan = (data: string) => {
@@ -102,11 +128,39 @@ export default function MeetingTimer() {
         parsedData = JSON.parse(data)
       }
       
-      setScannedData(parsedData)
+      // Handle both new comprehensive format and old format
+      let formattedData
+      if (parsedData.metadata && parsedData.activities) {
+        // New comprehensive format
+        formattedData = {
+          day: parsedData.day,
+          date: parsedData.date,
+          title: parsedData.title,
+          meetingTime: parsedData.meetingTime,
+          activities: parsedData.activities,
+          totalDuration: parsedData.totalDuration,
+          summary: parsedData.summary,
+          metadata: parsedData.metadata
+        }
+      } else {
+        // Old format - convert to new format
+        formattedData = {
+          day: parsedData.day,
+          date: parsedData.date,
+          title: `${parsedData.day} Meeting Schedule`,
+          activities: parsedData.activities?.map((activity, index) => ({
+            order: index + 1,
+            ...activity
+          })) || [],
+          totalDuration: parsedData.totalDuration || 0
+        }
+      }
+      
+      setScannedData(formattedData)
       setShowQRScanner(false)
       toast({
         title: "QR Code Scanned Successfully! 📱",
-        description: `Found schedule for ${parsedData.day} with ${parsedData.activities.length} activities`,
+        description: `Found ${formattedData.title || formattedData.day + ' schedule'} with ${formattedData.activities.length} activities`,
       })
     } catch (error) {
       toast({
@@ -2170,19 +2224,31 @@ export default function MeetingTimer() {
                   <div className="flex justify-center">
                     <img
                       src={generateQRCodeURL()}
-                      alt="QR Code"
-                      className="w-64 h-64 border-2 border-gray-200 rounded-lg"
+                      alt="QR Code for Schedule"
+                      className="w-80 h-80 border-2 border-gray-200 rounded-lg shadow-md"
+                      style={{ imageRendering: 'crisp-edges' }}
                     />
                   </div>
-                  <div className="text-sm text-gray-600">
-                    <p className="font-medium">Scan this QR code to view the schedule</p>
-                    <p>{selectedDay} - {todaySegments.length} activities</p>
-                    <p>Total Duration: {todaySegments.reduce((sum, seg) => {
-                      const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
-                      return sum + (daySchedule ? daySchedule.duration : seg.duration)
-                    }, 0)} minutes</p>
-                    <p className="text-xs text-blue-600 mt-2">
-                      💡 Opens directly in any QR scanner app
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <p className="font-medium text-lg text-gray-800">📅 {selectedDay} Meeting Schedule</p>
+                    <div className="grid grid-cols-2 gap-4 mt-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-center">
+                        <div className="font-bold text-blue-600">{todaySegments.length}</div>
+                        <div className="text-xs">Activities</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-bold text-green-600">{todaySegments.reduce((sum, seg) => {
+                          const daySchedule = seg.daySchedules?.find(ds => ds.day === selectedDay)
+                          return sum + (daySchedule ? daySchedule.duration : seg.duration)
+                        }, 0)} min</div>
+                        <div className="text-xs">Total Duration</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-3 font-medium">
+                      🎯 High Resolution QR Code - Scan with any device
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Contains complete schedule table with all activity details
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -2286,7 +2352,7 @@ export default function MeetingTimer() {
               <Card className="border-2 border-green-200 shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <CardTitle className="text-green-800 text-lg sm:text-xl">
-                    Scanned Schedule: {scannedData.day}
+                    📋 {scannedData.title || `${scannedData.day} Schedule`}
                   </CardTitle>
                   <Button
                     variant="ghost"
@@ -2299,48 +2365,112 @@ export default function MeetingTimer() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 bg-green-50 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-800">{scannedData.day}</div>
-                        <div className="text-xs text-green-600">Day</div>
+                    {/* Schedule Header Info */}
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
+                        <div>
+                          <div className="text-lg font-bold text-green-800">{scannedData.day}</div>
+                          <div className="text-xs text-gray-600">Meeting Day</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-blue-800">{scannedData.activities?.length || 0}</div>
+                          <div className="text-xs text-gray-600">Activities</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-purple-800">{scannedData.totalDuration || 0}min</div>
+                          <div className="text-xs text-gray-600">Total Duration</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-orange-800">{scannedData.meetingTime || "7:10-7:50 AM"}</div>
+                          <div className="text-xs text-gray-600">Meeting Time</div>
+                        </div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-800">{scannedData.activities.length}</div>
-                        <div className="text-xs text-green-600">Activities</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-800">{scannedData.totalDuration}min</div>
-                        <div className="text-xs text-green-600">Total Duration</div>
-                      </div>
+                      
+                      {/* Summary Stats */}
+                      {scannedData.summary && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="grid grid-cols-3 gap-4 text-center text-sm">
+                            <div>
+                              <span className="text-gray-600">Shortest:</span> 
+                              <span className="font-medium ml-1">{scannedData.summary.shortestActivity}min</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Average:</span> 
+                              <span className="font-medium ml-1">{scannedData.summary.averageDuration}min</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Longest:</span> 
+                              <span className="font-medium ml-1">{scannedData.summary.longestActivity}min</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Scanned Activities Table */}
+                    {/* Comprehensive Activities Table */}
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden">
+                      <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg overflow-hidden shadow-sm">
                         <thead>
-                          <tr className="bg-green-100">
-                            <th className="border border-gray-300 p-2 text-left text-sm font-semibold">Activity</th>
-                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Duration</th>
-                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Time</th>
-                            <th className="border border-gray-300 p-2 text-center text-sm font-semibold">Days</th>
+                          <tr className="bg-gradient-to-r from-green-100 to-blue-100">
+                            <th className="border border-gray-300 p-3 text-left text-sm font-semibold">#</th>
+                            <th className="border border-gray-300 p-3 text-left text-sm font-semibold">Activity Title</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Duration</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">Start Time</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">End Time</th>
+                            <th className="border border-gray-300 p-3 text-center text-sm font-semibold">All Days</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {scannedData.activities.map((activity: any, index: number) => (
-                            <tr key={index} className="hover:bg-green-50 transition-colors">
-                              <td className="border border-gray-300 p-2 font-medium">{activity.title}</td>
-                              <td className="border border-gray-300 p-2 text-center">{activity.duration}min</td>
-                              <td className="border border-gray-300 p-2 text-center">
-                                {activity.startTime} - {activity.endTime}
+                          {scannedData.activities?.map((activity: any, index: number) => (
+                            <tr key={activity.id || index} className="hover:bg-green-50 transition-colors">
+                              <td className="border border-gray-300 p-3 text-center font-medium text-gray-600">
+                                {activity.order || index + 1}
                               </td>
-                              <td className="border border-gray-300 p-2 text-center text-sm">
-                                {activity.days.join(", ")}
+                              <td className="border border-gray-300 p-3 font-medium text-gray-900">
+                                {activity.title}
+                              </td>
+                              <td className="border border-gray-300 p-3 text-center">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
+                                  {activity.duration}min
+                                </span>
+                              </td>
+                              <td className="border border-gray-300 p-3 text-center font-mono text-sm">
+                                {activity.startTime}
+                              </td>
+                              <td className="border border-gray-300 p-3 text-center font-mono text-sm">
+                                {activity.endTime}
+                              </td>
+                              <td className="border border-gray-300 p-3 text-center text-sm text-gray-600">
+                                {activity.allDays || (activity.days?.join(", ")) || "N/A"}
                               </td>
                             </tr>
-                          ))}
+                          )) || (
+                            <tr>
+                              <td colSpan={6} className="border border-gray-300 p-6 text-center text-gray-500">
+                                No activities found in scanned data
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Metadata */}
+                    {scannedData.metadata && (
+                      <div className="p-3 bg-gray-50 rounded-lg border text-xs text-gray-600">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <span className="font-medium">Generated:</span> {new Date(scannedData.metadata.generatedAt).toLocaleString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Source:</span> {scannedData.metadata.source}
+                          </div>
+                          <div>
+                            <span className="font-medium">Version:</span> {scannedData.metadata.version}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       <Button
